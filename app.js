@@ -211,10 +211,13 @@ app.get("/api/0.0.1/user/add", function(req, res) {
     /// Stage data
     if(newuserflag) {
         console.log("New user!", req.query.UserData);
+        
         var stageuserdata = JSON.parse(req.query.UserData);
-        stageuserdata.token = req.query.UserToken;
+//        stageuserdata.token = req.query.UserToken;
         stageuserdata.last_login = new Date();
+        
         console.log("New user data object", stageuserdata);
+//        newuserflag = false;
     }
     else {
         console.log("User with token:", userList[j].token);
@@ -339,6 +342,7 @@ reviewModel.find(function (err, reviews) {
   if (err) return console.error(err);
   reviewList = reviews;
   console.log("Anzahl Reviews geladen:", reviewList.length);
+  status.Datasets.push({"Reviews":reviewList.length});  
 });
 
 app.get("/api/0.0.1/review/get", function(req, res) {
@@ -420,6 +424,7 @@ eduobjectiveModel.find(function (err, eo) {
   if (err) return console.error(err);
   eduobjectiveList = eo;
   console.log("Anzahl Lernziele geladen:", eduobjectiveList.length);
+  status.Datasets.push({"EduObjectives":eduobjectiveList.length});
   // console.log("userList aus MongoDB:", userList);
 });
 
@@ -511,6 +516,7 @@ challengeModel.find(function (err, challenge) {
   if (err) return console.error(err);
   challengeList = challenge;
   console.log("Anzahl Challenges geladen:", challengeList.length);
+  status.Datasets.push({"Challenges":challengeList.length});
   // console.log("userList aus MongoDB:", userList);
 });
 
@@ -562,19 +568,19 @@ app.get("/callback", function(req, res) {
 
 
 app.get("/api/status", function(req, res) {
+    console.log("Status requested from", req.ip);
     res.send(status);
 });
 
 var status = {
   "Status":"Ok",
+  "Started":new Date(),
+  "LastLoad":new Date(),
   "Hostname":process.env.HOSTNAME || "empty",
   "IP":process.env.IP,
   "Port":process.env.PORT || 3000,
-  "Home directory": process.env.HOME,
-  "Script:": process.env.npm_package_scripts_run_server,
   "PWD": process.env.PWD,
-  "Init CWD":process.env.INIT_CWD,
-  "NPM package name":process.env.npm_package_name
+  "Datasets": []
 };
 
 console.log("Listening on port:", process.env.PORT || 3000);
