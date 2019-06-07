@@ -2,6 +2,13 @@ var express = require("express");
 var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
 var path = require("path");
+
+var dialog = require("./schema/dialog.js");
+var assignment = require("./schema/assignment.js");
+var assignresult = require("./schema/assignresult.js");
+var log = require("./schema/log.js");
+var dialogtemplate = require("./schema/dialogtemplate.js");
+
 var APP_CONFIG = require("./app-variables.js");
 
 console.log("NODE_ENV", process.env.NODE_ENV || "test");
@@ -12,7 +19,7 @@ var app = express();
 
 //Enabling CORS - cross-origin HTTP request
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://aimy.iod4all.com:8080");
+  res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
@@ -48,8 +55,9 @@ const TestData = mongoose.model('testData', userTestData);
 
 
 app.get("/", function(req, res) {
-    console.log("index.html aufgerufen:", req.query);
-    res.sendFile(path.join(__dirname, "views", "index.html"));
+    console.log("index.html aufgerufen von:", req.ip);
+//    res.sendFile(path.join(__dirname, "views", "index.html"));
+    res.send({success: false, error: "request not valid"});
 });
 app.get("/test", function(req, res) {
     console.log("test.html aufgerufen:", req.query);
@@ -58,6 +66,217 @@ app.get("/test", function(req, res) {
 
 app.get("/favicon.ico", function(req, res) {
     res.sendFile(path.join(__dirname, ".", "favicon.ico"));
+});
+
+///////////////////////////////////////////////////////////////
+//
+// Dialogs
+//
+///////////////////////////////////////////////////////////////
+
+app.get("/api/0.1.0/dialogs/get", function(req, res) {
+    console.log("Dialogs", req.query.token);
+    if(req.query.token) {
+        dialog.find({token:req.query.token, state: 1},null,{sort:{create_date: 1}},function(err, dialogs) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(dialogs.length > 0) {
+                res.send({success: true, error: "dialogs for "+req.query.token, dialogs:dialogs});
+            } else {
+                res.send({success: false, error: "no dialogs for "+req.query.token});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
+});
+app.get("/api/0.1.0/dialogs/getall", function(req, res) {
+    console.log("Dialogs", req.query.token);
+    if(req.query.token) {
+        dialog.find({token:req.query.token},null,{sort:{create_date: -1}},function(err, dialogs) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(dialogs.length > 0) {
+                res.send({success: true, error: "dialogs for "+req.query.token, dialogs:dialogs});
+            } else {
+                res.send({success: false, error: "no dialogs for "+req.query.token});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
+});
+app.get("/api/0.1.0/dialogs/add", function(req, res) {
+    
+    var token = req.query.token;
+    var lang = req.query.lang;
+    var type = req.query.type;
+    var content = req.query.content;
+    
+    console.log("Dialogs", req.query, token, lang, type, content);
+
+    if(token) {
+        var dia1 = new dialog();
+        
+        dia1.token = token;
+        dia1.lang = lang || "de";
+        dia1.type = type;
+        dia1.content = content;
+        
+        dia1.save(function (err, dia) {
+            console.log("Save:", dia);
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                res.send({success: true, error: "dialog for "+token+" created"});
+            }
+        });
+    } else {
+        res.send({success: false, error: "token not valid"});
+    }
+});
+app.get("/api/0.1.0/dialogs/reaction", function(req, res) {
+    var id = req.query.id;
+    var reaction = req.query.reaction;
+    var text = req.query.text;
+
+    console.log("Dialog reaction", id, reaction, text);
+    if(id) {
+        dialog.findOne({_id:id},function(err, dia) {
+            if(err) {
+                
+            } else {
+                //Find matching dialog
+                //Update dialog status
+                var reaction_ok = false;
+                var new_state = 0;
+                /************
+                 * Reaction:
+                 * 0:   Abort/deny
+                 * 1-9: Button index
+                 * 10:  ok
+                 * 11:  delay
+                 * 12:  ok, add skill
+                 * 13:  ok, add text (log entry/comment)
+                 * 
+                 * Status:
+                 * 1:   Active
+                 * 2:   Postponed
+                 * 3:   Done
+                 * 4:   Cancled
+                 ************/
+                switch(reaction) {
+                    case "0":
+                        // code block
+                        new_state = 4;
+                        reaction_ok = true;
+                        break;
+                    case "1":
+                    case "2":
+                    case "3":
+                    case "4":
+                        // code block
+                        new_state = 3;
+                        reaction_ok = true;
+                        break;
+                    case "10":
+                        new_state = 3;
+                        reaction_ok = true;
+                        break;
+                    case "11":
+                        new_state = 2;
+                        var today = new Date;
+                        // Add two days for the delay
+                        dia.delay = new Date(today.getTime()+1000*60*60*48);
+                        reaction_ok = true;
+                        break;
+                    case "12":
+                        new_state = 3;
+                        reaction_ok = true;
+                        break;
+                    case "13":
+                        new_state = 3;
+                        reaction_ok = true;
+                        break;
+                }                
+                if(reaction_ok){
+                    //Create reaction record and update local instance of dialog
+                    dia.reaction.push({reaction_data: new Date, type: reaction, reponse:text});
+                    dia.state = new_state;
+                    //Update dialog with ammended reaction
+                    dialog.updateOne({ _id: id }, dia, function(err, dia2){
+                        if(err){
+                            res.send({success: false, error: err});
+                        } else {
+                            res.send({success: true, error: "reaction for "+id+" created"});
+                        }
+                    });
+                } else {
+                    res.send({success: true, error: "wrong reaction ["+reaction+"] and status ["+new_state+"]["+dia.state+"]"});
+                }
+            } //else err
+        }); //end find
+    } else {
+        res.send({success: false, error: "id not valid"});
+    }
+});
+
+///////////////////////////////////////////////////////////////
+//
+// Log Entries
+//
+///////////////////////////////////////////////////////////////
+
+app.get("/api/0.1.0/log/get", function(req, res) {
+    console.log("Logs", req.query.token);
+    if(req.query.token) {
+        log.find({token:req.query.token},null,{sort:{create_date: -1}},function(err, logentries) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(logentries.length > 0) {
+                res.send({success: true, error: "dialogs for "+req.query.token, logentries:logentries});
+            } else {
+                res.send({success: false, error: "no dialogs for "+req.query.token});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
+});
+app.get("/api/0.1.0/log/add", function(req, res) {
+    var token = req.query.token;
+
+    console.log("Log add", token, req.query.type, req.query.message);
+
+    if(token) {
+        var log1 = new log();
+        
+        log1.token = token;
+        log1.message = req.query.message;
+        log1.type = req.query.type;
+        log1.area = req.query.area;
+        log1.content = req.query.content;
+        log1.lang = req.query.lang;
+
+        log1.save(function (err, dia) {
+            console.log("Save:", dia);
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                res.send({success: true, error: "log entry for "+token+" created: "+dia['_id'], id:dia['_id']});
+            }
+        });
+    } else {
+        res.send({success: false, error: "token not valid"});
+    }
 });
 
 ///////////////////////////////////////////////////////////////
@@ -245,7 +464,7 @@ app.get("/api/0.0.1/user/reload", function(req, res) {
 app.get("/api/0.0.1/user/list", function(req, res) {
     ///// List with all users
 
-    console.log("userList from memory:", userList);
+    console.log("userList from memory:", userList.length);
     res.send(userList);
 });
 app.get("/api/0.0.1/user/update", function(req, res) {
@@ -345,6 +564,42 @@ reviewModel.find(function (err, reviews) {
   status.Datasets.push({"Reviews":reviewList.length});  
 });
 
+///api/0.1.0/assignment/get
+app.get("/api/0.1.0/assignment/get", function(req, res) {
+    console.log("Assignment", req.query.id);
+    if(req.query.id) {
+        assignment.findOne({_id:req.query.id},function(err, assignment) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            res.send({success: true, error: "assignment "+req.query.id, assignment:assignment});
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/assignment/add", function(req, res) {
+        var log1 = new assignment();
+        
+        log1.name = req.query.name;
+        log1.status = req.query.status;
+        log1.type = req.query.type;
+        log1.field = req.query.field;
+        log1.lang = req.query.lang;
+
+        log1.save(function (err, dia) {
+            console.log("Save:", dia);
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                res.send({success: true, error: "assignment created: "+dia['_id'], id:dia['_id']});
+            }
+        });
+});
+
+
 app.get("/api/0.0.1/review/get", function(req, res) {
     // Parameter
     //  id
@@ -384,6 +639,39 @@ app.get("/api/0.0.1/review/list", function(req, res) {
 }); 
 
 // Review Ende ////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+//
+// Assignment Result
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/assignresult/add", function(req, res) {
+    console.log("Assignment Result add", req.query.token, req.query.assignid, req.query.rating);
+
+    if(req.query.token && req.query.assignid) {
+        var result = new assignresult();
+        
+        result.token = req.query.token;
+        result.message = req.query.message;
+        result.rating = req.query.rating;
+        
+        result.save(function (err, dia) {
+            console.log("Save:", dia);
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                res.send({success: true, error: "assignment result entry for "+result.token+" created: "+dia['_id'], id:dia['_id']});
+            }
+        });
+    } else {
+        res.send({success: false, error: "token not valid"});
+    }
+});
+
+
+
+// Assignment Result Ende ////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////
 //
@@ -573,6 +861,7 @@ app.get("/api/status", function(req, res) {
 });
 
 var status = {
+    "success":true,
   "Status":"Ok",
   "Started":new Date(),
   "LastLoad":new Date(),
