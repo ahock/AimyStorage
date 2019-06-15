@@ -7,7 +7,7 @@ var dialog = require("./schema/dialog.js");
 var assignment = require("./schema/assignment.js");
 var assignresult = require("./schema/assignresult.js");
 var log = require("./schema/log.js");
-var dialogtemplate = require("./schema/dialogtemplate.js");
+var eduobjective = require("./schema/eduobjective.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -70,10 +70,35 @@ app.get("/favicon.ico", function(req, res) {
 
 ///////////////////////////////////////////////////////////////
 //
+// EduObjective
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/eduobjective/get", function(req, res) {
+    console.log("EduObjective", req.query.id);
+    if(req.query.id) {
+        eduobjective.find({_id:req.query.id},function(err, dialogs) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(dialogs.length > 0) {
+                res.send({success: true, error: "no error", "eduobjective": dialogs[0]});
+            } else {
+                res.send({success: false, error: "no eduobjective for "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
+});
+// EduObjective Ende ////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////
+//
 // Dialogs
 //
 ///////////////////////////////////////////////////////////////
-
 app.get("/api/0.1.0/dialogs/get", function(req, res) {
     console.log("Dialogs", req.query.token);
     if(req.query.token) {
@@ -278,61 +303,6 @@ app.get("/api/0.1.0/log/add", function(req, res) {
         res.send({success: false, error: "token not valid"});
     }
 });
-
-///////////////////////////////////////////////////////////////
-//
-// ToDo's
-//
-///////////////////////////////////////////////////////////////
-
-app.get("/api/0.1.0/todos", function(req, res) {
-    TestData.find()
-        .then(function(doc){
-            console.log("ID:", doc[0]);
-            res.send(doc);
-    });
-});
-
-var todos = [
-    {
-        title: "1. Todo",
-        content: "Ich bin der Inhalt"
-    },
-    {
-        title: "2. Todo",
-        content: "Ich bin der Inhalt"
-    }
-];
-
-app.get("/api/1.0.0/todos", function(req, res) {
-    res.send(todos);
-});
-app.get("/api/1.0.1/todos", function(req, res) {
-    
-    TestData.find()
-        .then(function(doc){
-            var todos = [];
-            for(var i=0; i<doc.length; i++){
-                console.log("ID:", doc[i]);
-                todos.push({
-                    title: doc[i].lang,
-                    content: doc[i]['text']
-                });            
-            }
-            res.send(todos);
-    });
-//    res.send(todos);
-});
-
-app.put("/api/1.0.0/todos/create", function(req, res) {
-    console.log(req.body.title, req.body.content);
-    todos.push({
-        title: req.body['title'],
-        content: req.body['content']
-    });
-    res.send({success: true});
-});
-
 
 ///////////////////////////////////////////////////////////////
 //
