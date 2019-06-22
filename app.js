@@ -8,6 +8,7 @@ var assignment = require("./schema/assignment.js");
 var assignresult = require("./schema/assignresult.js");
 var log = require("./schema/log.js");
 var eduobjective = require("./schema/eduobjective.js");
+var skill = require("./schema/skill.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -70,13 +71,83 @@ app.get("/favicon.ico", function(req, res) {
 
 ///////////////////////////////////////////////////////////////
 //
+// Skills
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/skill/get", function(req, res) {
+    console.log("Skill get", req.query.id);
+    if(req.query.id) {
+        skill.find({_id: req.query.id},function(err, result) {
+            console.log(err, result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result.length > 0) {
+                res.send({success: true, error: "no error", "skill": result[0]});
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/skill/upsert", function(req, res) {
+    console.log("Skill add/update", req.query.id);
+    skill.findByIdAndUpdate(req.query.id,{ $set: { name: req.query.name, description: req.query.description, modul: req.query.modul, field: req.query.field }},{upsert:true},function(err, result) {
+            console.log(err, result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result) {
+                res.send({success: true, error: "no error", "skill": result});
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+    }); 
+});
+app.get("/api/0.1.0/skill/updateassignment", function(req, res) {
+    console.log("EduObjective Assignment Update", req.query.id);
+    if(req.query.id) { // query, fields, options, callback
+        assignment.find({'eduobjref.id':req.query.id},{name: 1},null,function(err, assignments) {
+            console.log(assignments);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(assignments!=null) { //assignmentref: assignments
+                console.log("Update EduObj with Assignments:", req.query.id, assignments);
+                eduobjective.updateOne({_id: mongoose.Types.ObjectId(req.query.id)}, { $set: { assignmentref: assignments } },function(err,result){ //mongoose.Types.ObjectId(req.query.id)
+                  if(err){
+                      console.log("Error:", err);
+                  }
+                  console.log("Result", result);
+                  res.send({success: true, error: "no error", "eduobjective": result});
+                });
+//                res.send({success: true, error: "no error", "assignmentref": assignments});
+            } else {
+                res.send({success: false, error: "no eduobjective for "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.token});
+    }
+});
+// Skill Ende ////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////
+//
 // EduObjective
 //
 ///////////////////////////////////////////////////////////////
 app.get("/api/0.1.0/eduobjective/get", function(req, res) {
     console.log("EduObjective", req.query.id);
     if(req.query.id) {
-        eduobjective.find({_id:req.query.id},function(err, dialogs) {
+        eduobjective.find({_id: req.query.id},function(err, dialogs) {
+            console.log(err, dialogs);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
@@ -88,7 +159,34 @@ app.get("/api/0.1.0/eduobjective/get", function(req, res) {
             }
         }); 
     } else {
-        res.send({success: false, error: "no valid token: "+req.query.token});
+        res.send({success: false, error: "no valid id: "+req.query.token});
+    }
+});
+app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
+    console.log("EduObjective Assignment Update", req.query.id);
+    if(req.query.id) { // query, fields, options, callback
+        assignment.find({'eduobjref.id':req.query.id},{name: 1},null,function(err, assignments) {
+            console.log(assignments);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(assignments!=null) { //assignmentref: assignments
+                console.log("Update EduObj with Assignments:", req.query.id, assignments);
+                eduobjective.updateOne({_id: mongoose.Types.ObjectId(req.query.id)}, { $set: { assignmentref: assignments } },function(err,result){ //mongoose.Types.ObjectId(req.query.id)
+                  if(err){
+                      console.log("Error:", err);
+                  }
+                  console.log("Result", result);
+                  res.send({success: true, error: "no error", "eduobjective": result});
+                });
+//                res.send({success: true, error: "no error", "assignmentref": assignments});
+            } else {
+                res.send({success: false, error: "no eduobjective for "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.token});
     }
 });
 // EduObjective Ende ////////////////////////////////////////////////////////

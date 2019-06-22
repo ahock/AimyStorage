@@ -5,11 +5,14 @@ var eduobjectiveSchema = new Schema({
     name: String,
     create_date: { type: Date, default: Date.now },
     lang: String,
-    type: { type: String, default: "Kennen" },
+    type: { type: Number, default: 1 },
     taxonomie: { type: Number, default: 1},
-    skillgoal: String,
     modul: String,
-    field: String
+    field: String,
+    skillref: [{_id: String, name: String}],
+    assignmentref: [{_id: String, name: String}],
+    challengeref: [{_id: String, name: String}],
+    contentref: [{_id: String, name: String}]
 });
 
 const eduobjectiveModel = mongoose.model('eduobjective', eduobjectiveSchema);
