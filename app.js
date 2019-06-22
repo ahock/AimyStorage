@@ -9,6 +9,7 @@ var assignresult = require("./schema/assignresult.js");
 var log = require("./schema/log.js");
 var eduobjective = require("./schema/eduobjective.js");
 var skill = require("./schema/skill.js");
+var content = require("./schema/content.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -68,6 +69,82 @@ app.get("/test", function(req, res) {
 app.get("/favicon.ico", function(req, res) {
     res.sendFile(path.join(__dirname, ".", "favicon.ico"));
 });
+
+///////////////////////////////////////////////////////////////
+//
+// Content
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/content/get", function(req, res) {
+    console.log("Content get", req.query.id);
+    if(req.query.id) {
+        content.find({_id: req.query.id},function(err, result) {
+            console.log(err, result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result.length > 0) {
+                res.send({success: true, error: "no error", "skill": result[0]});
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/content/upsert", function(req, res) {
+    console.log("Content add/update", req.query.id);
+    var type_text = [
+        "YouTube Video",
+        "Website Tutorial",
+        "Video",
+        "Presentation",
+        "Online Presentation",
+        "Audio Book",
+        "Book",
+        "Event",
+        "Meetup Event"
+    ];
+    if(req.query.id) {
+        content.findByIdAndUpdate(req.query.id,{
+            $set: {
+                name: req.query.name,
+                description: req.query.description,
+                type: req.query.type,
+                type_text: type_text[req.query.type-1],
+                url: req.query.url
+            }
+            },{upsert:true},function(err, result) {
+            console.log(err, result);
+                if (err) {
+                    res.send({success: false, error: "error "+err+" from db"});
+                    return console.error(err);
+                }
+                if(result) {
+                    res.send({success: true, error: "no error", "skill": result});
+                } else {
+                    res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        });
+    } else {
+        var NewContent = new content({
+            name: req.query.name,
+            description: req.query.description,
+            type: req.query.type,
+            type_text: type_text[req.query.type-1],
+            url: req.query.url
+        });
+        console.log("Content", NewContent);
+        NewContent.save(function (err, result) {
+            if (err) return console.error(err);
+            console.log("ContResult: ", result);
+            res.send({success: true, error: "no error", "content": result});    
+        });
+    }
+});
+// Content Ende ////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////
 //
@@ -423,9 +500,9 @@ var userData = new Schema({
     last_login: Date,
     login_history: [String],
     groups: [String],
-    eduobjectives: [{oid: String, name: String, selfassess: String, field: String, notes: String}],
+    eduobjectives: [{id: String, name: String, selfassess: String, field: String, notes: String}],
     masteries: [masteryData],
-    reviews: [{oid: String, name: String}],
+    reviews: [{refid: String, name: String}],
     lang: String
 },{collection: 'users'});
 
@@ -572,6 +649,36 @@ app.get("/api/0.0.1/user/update", function(req, res) {
                 });
             });
 //        }
+    });
+    res.send({success: true, function: "update"});
+});
+app.get("/api/0.0.1/user/seteduoselfassess", function(req, res) {
+    userDataModel.findOne({token:req.query.token}, function (err, user) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("Query:",req.query, user.eduobjectives);
+        if(user) {
+            var i = 0;
+            for(i=0;i<user.eduobjectives.length;i++) {
+//                console.log(user.eduobjectives[i].id);
+                if(user.eduobjectives[i].id==req.query.eduoid) {
+                    user.eduobjectives[i].selfassess = req.query.value;
+                    user.save(function (err, user) {
+                        if (err) return console.error(err);
+                    });
+                    break;
+                }
+            }
+            if(i==user.eduobjectives.length) {
+                //New Selfassessment
+                user.eduobjectives.push({id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
+//                console.log(user.eduobjectives);
+                user.save(function (err, user) {
+                    if (err) return console.error(err);
+                });
+            }
+        }
+        // TODO
     });
     res.send({success: true, function: "update"});
 });
