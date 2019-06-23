@@ -1,16 +1,15 @@
 var mongoose = require("mongoose");
 var Schema = mongoose.Schema;
 
-var contentSchema = new Schema({
+var skillsetSchema = new Schema({
     name: String,
     create_date: { type: Date, default: Date.now },
     lang: { type: String, default: 'de' },
     description: String,
-    type: Number,
-    type_text: String,
-    url: String
+    field: String,
+    skillref: [{id: String, name: String}],
 });
 
-const contentModel = mongoose.model('content', contentSchema);
+const skillsetModel = mongoose.model('skillset', skillsetSchema);
 
-module.exports = contentModel;
+module.exports = skillsetModel;

@@ -9,6 +9,7 @@ var assignresult = require("./schema/assignresult.js");
 var log = require("./schema/log.js");
 var eduobjective = require("./schema/eduobjective.js");
 var skill = require("./schema/skill.js");
+var skillset  = require("./schema/skillset.js");
 var content = require("./schema/content.js");
 
 var APP_CONFIG = require("./app-variables.js");
@@ -72,6 +73,84 @@ app.get("/favicon.ico", function(req, res) {
 
 ///////////////////////////////////////////////////////////////
 //
+// Skillset
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/skillset/getall", function(req, res) {
+    console.log("Skillset getall");
+    skillset.find({},function(err, result) {
+//            console.log(err, result);
+        if (err) {
+            res.send({success: false, error: "error "+err+" from db"});
+            return console.error(err);
+        }
+        if(result.length > 0) {
+            res.send({success: true, error: "no error", "skillsets": result});
+        } else {
+            res.send({success: false, error: "no skillset"});
+        }
+    }); 
+});
+app.get("/api/0.1.0/skillset/get", function(req, res) {
+    console.log("Skillset get", req.query.id);
+    if(req.query.id) {
+        skillset.find({_id: req.query.id},function(err, result) {
+            console.log(err, result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result.length > 0) {
+                res.send({success: true, error: "no error", "skillset": result[0]});
+            } else {
+                res.send({success: false, error: "no skillset with id "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/skillset/upsert", function(req, res) {
+    console.log("Skillset add/update", req.query.id);
+    if(req.query.id) {
+        skillset.findByIdAndUpdate(req.query.id,{
+            $set: {
+                name: req.query.name,
+                description: req.query.description,
+                field: req.query.field,
+                skillref: []
+            }
+            },{upsert:true},function(err, result) {
+            console.log(err, result);
+                if (err) {
+                    res.send({success: false, error: "error "+err+" from db"});
+                    return console.error(err);
+                }
+                if(result) {
+                    res.send({success: true, error: "no error", "skillset": result});
+                } else {
+                    res.send({success: false, error: "no skillset with id "+req.query.id});
+            }
+        });
+    } else {
+        var NewSkillSet = new skillset({
+            name: req.query.name,
+            description: req.query.description,
+            field: req.query.field,
+            skillref: []
+        });
+        console.log("SkillSet", NewSkillSet);
+        NewSkillSet.save(function (err, result) {
+            if (err) return console.error(err);
+            console.log("SkillSetResult: ", result);
+            res.send({success: true, error: "no error", "skillset": result});    
+        });
+    }
+});
+// Skillset Ende ////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+//
 // Content
 //
 ///////////////////////////////////////////////////////////////
@@ -114,7 +193,8 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
                 description: req.query.description,
                 type: req.query.type,
                 type_text: type_text[req.query.type-1],
-                url: req.query.url
+                url: req.query.url,
+                locator: req.query.locator
             }
             },{upsert:true},function(err, result) {
             console.log(err, result);
