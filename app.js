@@ -73,6 +73,217 @@ app.get("/favicon.ico", function(req, res) {
 
 ///////////////////////////////////////////////////////////////
 //
+// Link Objects
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/link", function(req, res) {
+    console.log("Link objects", req.query.pair, req.query.id1, req.query.id2 );
+    var id1 = req.query.id1;
+    var id2 = req.query.id2;
+    var name1;
+    var name2;
+    var obj1;
+    var obj2;
+    
+    switch (req.query.pair) {
+        case 'skill2set':
+            skillset.findById(req.query.id1, function(err, result) {
+                if (err) {
+                    return console.error(err);
+                } else {
+//                    console.log("skillset",id1,id2);
+                    obj1 = new skillset(result);
+                    name1 = result.name;
+                    skill.findById(id2, function(err, result) {
+                        if (err) {
+                            return console.error(err);
+                        } else {
+                            obj2 = new skill(result);
+                            name2 = result.name;
+                            // Existing?
+                            skillset.find({'skillref.id':id2},{name: 1},null,function(err, result) {
+                                if (err) {
+                                    return console.error(err);
+                                } else {                                
+//                                    console.log("result", result);                            
+                                    // Is skill already linked?
+                                    var newlinkflag = true;
+                                    for(var i=0;i<result.length;i++) {
+//                                        console.log(id1, result[i]._id);
+                                        if(id1 == result[i]._id) {
+                                            newlinkflag = false;
+                                        }
+                                    }
+                                    console.log(newlinkflag);
+//                                    console.log("skillset",id1,name1,obj1);
+//                                    console.log("skill",id2,name2,obj2);
+                                    if(newlinkflag) {
+                                        // Create new link
+                                        obj1.skillref.push({"id":id2,"name":name2});
+                                        obj2.skillsetref.push({"_id":id1,"name":name1});
+                                    } else {
+                                        // Update existing link
+                                        for(var j=0;j<obj1.skillref.length;j++) {
+                                            if(obj1.skillref[j].id==id2) {
+                                                obj1.skillref[j].name = name2;
+                                            }
+                                        }
+                                        for(var k=0;k<obj2.skillsetref.length;k++) {
+                                            if(obj2.skillsetref[k]._id==id1) {
+                                                obj2.skillsetref[k].name = name1;
+                                            }
+                                        }
+                                    }
+                                    obj1.save(function (err, result) {if (err) return console.error(err);});
+                                    obj2.save(function (err, result) {if (err) return console.error(err);});
+//                                    console.log("skillset",id1,name1,obj1);
+//                                    console.log("skill",id2,name2,obj2);
+                                    res.send({success: false, error: "info", newlink: newlinkflag, data:{id1:id1,name1:name1,id2:id2,name2:name2}});    
+                                }
+                            });
+                            
+                            
+                        }
+                    });
+                }
+            });
+            break;
+        case 'skilleduo':
+            skill.findById(req.query.id1, function(err, result) {
+                if (err) {
+                    return console.error(err);
+                } else {
+                    obj1 = new skill(result);
+                    name1 = result.name;
+                    eduobjective.findById(id2, function(err, result) {
+                        if (err) {
+                            return console.error(err);
+                        } else {
+                            obj2 = new eduobjective(result);
+                            name2 = result.name;
+                            // Existing?
+                            skill.find({'eduobjectiveref._id':id2},{name: 1},null,function(err, result) {
+                                if (err) {
+                                    return console.error(err);
+                                } else {                                
+                                    // Is skill already linked?
+                                    var newlinkflag = true;
+                                    for(var i=0;i<result.length;i++) {
+                                        if(id1 == result[i]._id) {
+                                            newlinkflag = false;
+                                        }
+                                    }
+                                    console.log(newlinkflag);
+                                    if(newlinkflag) {
+                                        // Create new link
+                                        obj1.eduobjectiveref.push({"_id":id2,"name":name2});
+                                        obj2.skillref.push({"_id":id1,"name":name1});
+                                    } else {
+                                        // Update existing link
+                                        for(var j=0;j<obj1.eduobjectiveref.length;j++) {
+                                            if(obj1.eduobjectiveref[j].id==id2) {
+                                                obj1.eduobjectiveref[j].name = name2;
+                                            }
+                                        }
+                                        for(var k=0;k<obj2.skillref.length;k++) {
+                                            if(obj2.skillref[k]._id==id1) {
+                                                obj2.skillref[k].name = name1;
+                                            }
+                                        }
+                                    }
+                                    obj1.save(function (err, result) {if (err) return console.error(err);});
+                                    obj2.save(function (err, result) {if (err) return console.error(err);});
+                                    res.send({success: false, error: "info", newlink: newlinkflag, data:{id1:id1,name1:name1,id2:id2,name2:name2}});    
+                                }
+                            });
+                            
+                            
+                        }
+                    });
+                }
+            });
+            break;
+        case 'eduocontent':
+            eduobjective.findById(req.query.id1, function(err, result) {
+                if (err) {
+                    return console.error(err);
+                } else {
+                    obj1 = new eduobjective(result);
+                    name1 = result.name;
+                    content.findById(id2, function(err, result) {
+                        if (err) {
+                            return console.error(err);
+                        } else {
+                            obj2 = new content(result);
+                            name2 = result.name;
+                            // Existing?
+                            eduobjective.find({'contentref.id':id2},{name: 1},null,function(err, result) {
+                                if (err) {
+                                    return console.error(err);
+                                } else {                                
+                                    // Is skill already linked?
+                                    var newlinkflag = true;
+                                    for(var i=0;i<result.length;i++) {
+                                        if(id1 == result[i]._id) {
+                                            newlinkflag = false;
+                                        }
+                                    }
+                                    console.log(newlinkflag);
+                                    if(newlinkflag) {
+                                        // Create new link
+                                        obj1.contentref.push({"id":id2,"name":name2});
+//                                        obj2.eduobjectiveref.push({"_id":id1,"name":name1});
+                                    } else {
+                                        // Update existing link
+                                        for(var j=0;j<obj1.contentref.length;j++) {
+                                            if(obj1.contentref[j].id==id2) {
+                                                obj1.contentref[j].name = name2;
+                                            }
+                                        }
+//                                        for(var k=0;k<obj2.eduobjectiveref.length;k++) {
+//                                            if(obj2.eduobjectiveref[k]._id==id1) {
+//                                                obj2.eduobjectiveref[k].name = name1;
+//                                            }
+//                                        }
+                                    }
+                                    obj1.save(function (err, result) {if (err) return console.error(err);});
+                                    obj2.save(function (err, result) {if (err) return console.error(err);});
+                                    res.send({success: false, error: "info", newlink: newlinkflag, data:{id1:id1,name1:name1,id2:id2,name2:name2}});    
+                                }
+                            });
+                            
+                            
+                        }
+                    });
+                }
+            });
+            break;
+    
+        
+        default:
+            // code
+            res.send({success: false, error: "link: ["+req.query.pair+"] ("+req.query.id1+") and ("+req.query.id2+")"});
+    }
+/*    
+    skillset.find({},function(err, result) {
+
+        if (err) {
+            res.send({success: false, error: "error "+err+" from db"});
+            return console.error(err);
+        }
+        if(result.length > 0) {
+            res.send({success: true, error: "no error", "skillsets": result});
+        } else {
+            res.send({success: false, error: "no skillset"});
+        }
+    }); 
+*/
+    
+});
+// Skillset Ende ////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+//
 // Skillset
 //
 ///////////////////////////////////////////////////////////////
