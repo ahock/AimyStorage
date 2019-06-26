@@ -368,16 +368,16 @@ app.get("/api/0.1.0/skillset/upsert", function(req, res) {
 app.get("/api/0.1.0/content/get", function(req, res) {
     console.log("Content get", req.query.id);
     if(req.query.id) {
-        content.find({_id: req.query.id},function(err, result) {
-            console.log(err, result);
+        content.findOne({_id: req.query.id},function(err, result) {
+            console.log(result);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
             }
-            if(result.length > 0) {
-                res.send({success: true, error: "no error", "skill": result[0]});
+            if(result) {
+                res.send({success: true, error: "no error", "content": result});
             } else {
-                res.send({success: false, error: "no skill with id "+req.query.id});
+                res.send({success: false, error: "no content with id "+req.query.id});
             }
         }); 
     } else {
@@ -442,6 +442,23 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
 // Skills
 //
 ///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/skill/getall", function(req, res) {
+    console.log("Skill get", req.query.id);
+    
+        skill.find({},function(err, result) {
+            console.log(err, result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result.length > 0) {
+                res.send({success: true, error: "no error", "skills": result});
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        }); 
+    
+});
 app.get("/api/0.1.0/skill/get", function(req, res) {
     console.log("Skill get", req.query.id);
     if(req.query.id) {
