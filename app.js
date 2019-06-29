@@ -402,10 +402,11 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
             $set: {
                 name: req.query.name,
                 description: req.query.description,
-                type: req.query.type,
+                type: req.query.ctype,
                 type_text: type_text[req.query.type-1],
                 url: req.query.url,
-                locator: req.query.locator
+                locator: req.query.locator,
+                lang: req.query.lang
             }
             },{upsert:true},function(err, result) {
             console.log(err, result);
@@ -423,9 +424,10 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
         var NewContent = new content({
             name: req.query.name,
             description: req.query.description,
-            type: req.query.type,
+            type: req.query.ctype,
             type_text: type_text[req.query.type-1],
-            url: req.query.url
+            url: req.query.url,
+            lang: req.query.lang
         });
         console.log("Content", NewContent);
         NewContent.save(function (err, result) {
