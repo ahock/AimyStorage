@@ -228,11 +228,13 @@ app.get("/api/0.1.0/link", function(req, res) {
                                             newlinkflag = false;
                                         }
                                     }
-                                    console.log(newlinkflag);
+                                    console.log("Create new link:",newlinkflag);
                                     if(newlinkflag) {
                                         // Create new link
                                         obj1.contentref.push({"id":id2,"name":name2});
-//                                        obj2.eduobjectiveref.push({"_id":id1,"name":name1});
+                                        // TODO: Also link eduo back to content
+                                        obj2.eduobjectiveref.push({"_id":id1,"name":name1});
+                                        console.log("Contentref in eduo:", obj1);
                                     } else {
                                         // Update existing link
                                         for(var j=0;j<obj1.contentref.length;j++) {
@@ -240,11 +242,18 @@ app.get("/api/0.1.0/link", function(req, res) {
                                                 obj1.contentref[j].name = name2;
                                             }
                                         }
-//                                        for(var k=0;k<obj2.eduobjectiveref.length;k++) {
-//                                            if(obj2.eduobjectiveref[k]._id==id1) {
-//                                                obj2.eduobjectiveref[k].name = name1;
-//                                            }
-//                                        }
+                                        var backlink = false;
+                                        for(var k=0;k<obj2.eduobjectiveref.length;k++) {
+                                            if(obj2.eduobjectiveref[k]._id==id1) {
+                                                // Backlink exists, only update name
+                                                obj2.eduobjectiveref[k].name = name1;
+                                                backlink = true;
+                                            }
+                                        }
+                                        if( !backlink ) {
+                                            // Create new backlink from content to eduobjective
+                                            obj2.eduobjectiveref.push({"_id":id1,"name":name1});
+                                        }
                                     }
                                     obj1.save(function (err, result) {if (err) return console.error(err);});
                                     obj2.save(function (err, result) {if (err) return console.error(err);});
@@ -1005,7 +1014,7 @@ app.get("/api/0.0.1/user/seteduoselfassess", function(req, res) {
 var reviewSchema = new Schema({
     name: String,
     status: ['upcoming','open','done'],
-    type: ['Mastery','ATL','Verify'],
+    type: String,
     modul: String,
     learninggoal: [{
         name: String

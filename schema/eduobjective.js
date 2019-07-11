@@ -13,7 +13,7 @@ var eduobjectiveSchema = new Schema({
     assignmentref: [{_id: String, name: String}],
     challengeref: [{_id: String, name: String}],
     contentref: [{
-        _id: String,
+        id: String,
         name: String,
         priority: Number,
         locator: { type: String, default: "mm.ss" }

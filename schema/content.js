@@ -8,7 +8,11 @@ var contentSchema = new Schema({
     description: String,
     type: Number,
     type_text: String,
-    url: String
+    url: String,
+    eduobjectiveref: [{
+        _id: String,
+        name: String
+    }]
 });
 
 const contentModel = mongoose.model('content', contentSchema);
