@@ -11,6 +11,7 @@ var eduobjective = require("./schema/eduobjective.js");
 var skill = require("./schema/skill.js");
 var skillset  = require("./schema/skillset.js");
 var content = require("./schema/content.js");
+var user = require("./schema/user.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -800,6 +801,170 @@ app.get("/api/0.1.0/log/add", function(req, res) {
 
 ///////////////////////////////////////////////////////////////
 //
+// User v0.1.0
+//
+///////////////////////////////////////////////////////////////
+
+app.get("/api/0.1.0/user/get", function(req, res) {
+    // Parameter
+    //  UserToken
+    //
+    console.log("/api/0.1.0/user/get");
+    // Log Device parameter
+    console.log("IP", req.ip);
+    console.log("Token", req.query.UserToken);
+    console.log("ClientId", req.query.ClientId);
+
+    // TODO: move parameter 'UserToken' to 'token'
+
+    if(req.query.UserToken) {
+        user.find({token:req.query.UserToken},null,{sort:{token: -1}},function(err, userdata) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(userdata) {
+                console.log("User:", userdata[0]);
+                res.send({success: true, error: "dialogs for "+req.query.token, user:userdata[0]});
+            } else {
+                res.send({success: false, error: "no user with token "+req.query.UserToken});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.UserToken});
+    }
+});
+app.get("/api/0.1.0/user/add", function(req, res) {
+    ///// Add new user
+    var newuserflag = true;
+    /// Check existance
+    ///// Search for user with this token
+    if( req.query.UserToken != "" && req.query.UserToken != undefined) {
+        var j;
+        for(var i = 0; i<userList.length;i++) {
+//            console.log("Token",userList[i].token);
+            if(userList[i].token == req.query.UserToken) {
+                console.log("Ok",i);
+                newuserflag = false;
+                j = i;
+                i = userList.length;
+            }
+        }
+    }
+    /// Stage data
+    if(newuserflag) {
+        console.log("New user!", req.query.UserData);
+        
+        var stageuserdata = JSON.parse(req.query.UserData);
+//        stageuserdata.token = req.query.UserToken;
+        stageuserdata.last_login = new Date();
+        
+        console.log("New user data object", stageuserdata);
+//        newuserflag = false;
+    }
+    else {
+        console.log("User with token:", userList[j].token);
+        res.send({success: false, error: "user exists"});
+    }
+    /// Create object and save
+    if(newuserflag) {
+        var User1 = new userDataModel(stageuserdata);
+        User1.save();
+        userList.push(User1);
+        console.log("Save new user!", User1, userList);
+        res.send({success: true, error: "user created"});
+    }
+});
+app.get("/api/0.1.0/user/reload", function(req, res) {
+    ///// Reload data from DB
+
+    userDataModel.find(function (err, user) {
+        if (err) return console.error(err);
+        userList = user;
+        console.log("userList aus MongoDB:", userList);
+        res.send({success: true, function: "reload"});
+    });
+});
+app.get("/api/0.1.0/user/list", function(req, res) {
+    ///// List with all users
+
+    console.log("userList from memory:", userList.length);
+    res.send(userList);
+});
+app.get("/api/0.1.0/user/update", function(req, res) {
+    user.findOne({token:req.query.UserToken}, function (err, user) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("Query:",req.query);
+//        console.log("User:",user);
+        // Udgate Educational Objectives
+        console.log(req.query.EduObj?JSON.parse(req.query.EduObj):"keine Educational Objectives");
+        if(req.query.EduObj) {
+            let edo = JSON.parse(req.query.EduObj);
+            
+            for(let i=0;i<user.eduobjectives.length;i++) {
+                for(let j=0;j<edo.length;j++) {
+                    if(user.eduobjectives[i].oid == edo[j].oid) {
+                       if(edo[j].selfassess) {
+                           user.eduobjectives[i].selfassess =  edo[j].selfassess;
+                       }
+                       if(edo[j].notes) {
+                           user.eduobjectives[i].notes =  edo[j].notes;
+                       }
+                    }
+                }
+            }
+        }
+        // Update Reviews
+        // TODO
+        
+        // Save user
+//        if(user){
+            user.save(function (err, user) {
+                if (err) return console.error(err);
+                userDataModel.find(function (err, user) {
+                    if (err) return console.error(err);
+                    userList = user;
+                });
+            });
+//        }
+    });
+    res.send({success: true, function: "update"});
+});
+app.get("/api/0.1.0/user/seteduoselfassess", function(req, res) {
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("seteduoselfassess query:",req.query, userdata.eduobjectives);
+        if(userdata) {
+            var i = 0;
+            for(i=0;i<userdata.eduobjectives.length;i++) {
+                if(userdata.eduobjectives[i].id==req.query.eduoid) {
+                    userdata.eduobjectives[i].selfassess = req.query.value;
+                    userdata.save(function (err, user) {
+                        if (err) return console.error(err);
+                    });
+                    break;
+                }
+            }
+            if(i==userdata.eduobjectives.length) {
+                //New Selfassessment
+                userdata.eduobjectives.push({id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
+                console.log(userdata.eduobjectives);
+                userdata.save(function (err, userdata) {
+                    if (err) return console.error(err);
+                });
+            }
+        }
+        // TODO
+    });
+    res.send({success: true, function: "seteduoselfassess"});
+});
+// User v0.1.0 Ende ////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////
+//
 // User
 //
 ///////////////////////////////////////////////////////////////
@@ -1300,6 +1465,15 @@ challengeModel.find(function (err, challenge) {
   console.log("Anzahl Challenges geladen:", challengeList.length);
   status.Datasets.push({"Challenges":challengeList.length});
   // console.log("userList aus MongoDB:", userList);
+});
+
+app.get("/api/0.1.0/challenge/getall", function(req, res) {
+    console.log("/api/0.0.1/challenge/getall");
+    challengeModel.find(function (err, challenge) {
+        if (err) return console.error(err);
+        console.log("Anzahl Challenges geladen:", challenge.length);
+        res.send({success: true, challenges: challenge});
+    });    
 });
 
 app.get("/api/0.0.1/challenge/get", function(req, res) {
