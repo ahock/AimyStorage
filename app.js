@@ -612,6 +612,26 @@ app.get("/api/0.1.0/dialogs/get", function(req, res) {
         res.send({success: false, error: "no valid token: "+req.query.token});
     }
 });
+
+app.get("/api/0.1.0/dialogs/getactive", function(req, res) {
+    console.log("Dialogs", req.query.token);
+    if(req.query.token) {
+        dialog.find({token:req.query.token, state: 1},null,{sort:{create_date: 1}},function(err, dialogs) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(dialogs.length > 0) {
+                res.send({success: true, error: "dialogs for "+req.query.token, dialogcount:dialogs.length});
+            } else {
+                res.send({success: true, error: "no dialogs for "+req.query.token, dialogcount:0});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
+});
+
 app.get("/api/0.1.0/dialogs/getall", function(req, res) {
     console.log("Dialogs", req.query.token);
     if(req.query.token) {
@@ -823,9 +843,9 @@ app.get("/api/0.1.0/user/get", function(req, res) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
             }
-            if(userdata) {
+            if(userdata[0]) {
                 console.log("User:", userdata[0]);
-                res.send({success: true, error: "dialogs for "+req.query.token, user:userdata[0]});
+                res.send({success: true, error: "data for user "+req.query.UserToken, user:userdata[0]});
             } else {
                 res.send({success: false, error: "no user with token "+req.query.UserToken});
             }
@@ -856,10 +876,10 @@ app.get("/api/0.1.0/user/add", function(req, res) {
         console.log("New user!", req.query.UserData);
         
         var stageuserdata = JSON.parse(req.query.UserData);
-//        stageuserdata.token = req.query.UserToken;
+        // Create default User
+        stageuserdata.token = req.query.UserToken;
         stageuserdata.last_login = new Date();
-        
-        console.log("New user data object", stageuserdata);
+
 //        newuserflag = false;
     }
     else {
@@ -869,6 +889,20 @@ app.get("/api/0.1.0/user/add", function(req, res) {
     /// Create object and save
     if(newuserflag) {
         var User1 = new userDataModel(stageuserdata);
+        // Create default Dialog
+        var Dialog1 = new dialog();
+        Dialog1.token = User1.token;
+        // TODO: set to selected language of user and update default text accordingly
+        Dialog1.lang = "de";
+        Dialog1.state = 1;
+        Dialog1.type = 1;
+        Dialog1.content = "Willkommen bei Aimy. Geniesse deine Entwicklung.";
+        Dialog1.save();
+        
+        // Create default Skill
+        User1.skillref[0] = JSON.parse("{id:'5cc491863af9f00acc95c435'}");
+
+        console.log("New user data object", User1);
         User1.save();
         userList.push(User1);
         console.log("Save new user!", User1, userList);
@@ -939,7 +973,7 @@ app.get("/api/0.1.0/user/seteduoselfassess", function(req, res) {
         if(userdata) {
             var i = 0;
             for(i=0;i<userdata.eduobjectives.length;i++) {
-                if(userdata.eduobjectives[i].id==req.query.eduoid) {
+                if(userdata.eduobjectives[i]._id==req.query.eduoid) {
                     userdata.eduobjectives[i].selfassess = req.query.value;
                     userdata.save(function (err, user) {
                         if (err) return console.error(err);
@@ -949,7 +983,7 @@ app.get("/api/0.1.0/user/seteduoselfassess", function(req, res) {
             }
             if(i==userdata.eduobjectives.length) {
                 //New Selfassessment
-                userdata.eduobjectives.push({id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
+                userdata.eduobjectives.push({_id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
                 console.log(userdata.eduobjectives);
                 userdata.save(function (err, userdata) {
                     if (err) return console.error(err);
