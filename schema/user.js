@@ -20,7 +20,15 @@ var userSchema = new Schema({
         mastery: String
     }],
     reviews: [{refid: String, name: String}],
-    lang: String
+    lang: String,
+    skillref: [{
+        id: String,
+        name: String,
+        description: String,
+        status: String,
+        togo: String,
+        rating: String
+    }]
 });
 
 const userModel = mongoose.model('user', userSchema);

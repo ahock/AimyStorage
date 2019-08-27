@@ -888,7 +888,7 @@ app.get("/api/0.1.0/user/add", function(req, res) {
     }
     /// Create object and save
     if(newuserflag) {
-        var User1 = new userDataModel(stageuserdata);
+        var User1 = new user(stageuserdata);
         // Create default Dialog
         var Dialog1 = new dialog();
         Dialog1.token = User1.token;
@@ -900,8 +900,7 @@ app.get("/api/0.1.0/user/add", function(req, res) {
         Dialog1.save();
         
         // Create default Skill
-        User1.skillref[0] = JSON.parse("{id:'5cc491863af9f00acc95c435'}");
-
+//        User1.skillref[0] = JSON.parse("{id:'5cc491863af9f00acc95c435'}");
         console.log("New user data object", User1);
         User1.save();
         userList.push(User1);
@@ -912,7 +911,7 @@ app.get("/api/0.1.0/user/add", function(req, res) {
 app.get("/api/0.1.0/user/reload", function(req, res) {
     ///// Reload data from DB
 
-    userDataModel.find(function (err, user) {
+    user.find(function (err, user) {
         if (err) return console.error(err);
         userList = user;
         console.log("userList aus MongoDB:", userList);
