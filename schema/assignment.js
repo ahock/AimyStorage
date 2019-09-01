@@ -30,7 +30,8 @@ var assignmentSchema = new Schema1({
     coautor: { type: String, default: "Andreas Hock" },
     coach: { type: String, default: "Andreas Hock" },
     challenges: [String],
-    eduobjref: [eduobjrefSchema]
+    eduobjref: [eduobjrefSchema],
+    challengemode: { type: String, default: "single" },
 });
 
 const assignmentModel = mongoose.model('Assignment', assignmentSchema);

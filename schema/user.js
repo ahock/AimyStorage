@@ -9,6 +9,17 @@ var userSchema = new Schema({
     last_login: Date,
     login_history: [String],
     groups: [String],
+    assignmentrefs: [{
+        id: String,
+        name: String,
+        status: String,
+        active: Date,
+        submitted: Date,
+        due: Date,
+        attempts: String,
+        rating: String,
+        comments: String
+    }],
     eduobjectives: [{
         _id: String,
         name: String,
@@ -19,7 +30,6 @@ var userSchema = new Schema({
         extatest: String,
         mastery: String
     }],
-    reviews: [{refid: String, name: String}],
     lang: String,
     skillref: [{
         id: String,
@@ -28,7 +38,7 @@ var userSchema = new Schema({
         status: String,
         togo: String,
         rating: String
-    }]
+    }],
 });
 
 const userModel = mongoose.model('user', userSchema);

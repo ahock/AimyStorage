@@ -879,8 +879,7 @@ app.get("/api/0.1.0/user/add", function(req, res) {
         // Create default User
         stageuserdata.token = req.query.UserToken;
         stageuserdata.last_login = new Date();
-
-//        newuserflag = false;
+//        console.log("stageuserdate", stageuserdata);
     }
     else {
         console.log("User with token:", userList[j].token);
@@ -889,6 +888,8 @@ app.get("/api/0.1.0/user/add", function(req, res) {
     /// Create object and save
     if(newuserflag) {
         var User1 = new user(stageuserdata);
+        console.log("New user data object", User1);
+
         // Create default Dialog
         var Dialog1 = new dialog();
         Dialog1.token = User1.token;
@@ -896,15 +897,12 @@ app.get("/api/0.1.0/user/add", function(req, res) {
         Dialog1.lang = "de";
         Dialog1.state = 1;
         Dialog1.type = 1;
-        Dialog1.content = "Willkommen bei Aimy. Geniesse deine Entwicklung.";
+        Dialog1.content = "Willkommen bei Aimy. Bitte beginne mit deinem ersten Auftrag und überprüfe, was du schon alles über die Bedienung von Aimy weisst. Dann kannst du schnell lernen, wie Aimy deine Daten schützt.";
         Dialog1.save();
         
-        // Create default Skill
-//        User1.skillref[0] = JSON.parse("{id:'5cc491863af9f00acc95c435'}");
-        console.log("New user data object", User1);
         User1.save();
         userList.push(User1);
-        console.log("Save new user!", User1, userList);
+
         res.send({success: true, error: "user created"});
     }
 });
@@ -1018,9 +1016,7 @@ var userData = new Schema({
     login_history: [String],
     groups: [String],
     eduobjectives: [{id: String, name: String, selfassess: String, field: String, notes: String}],
-    masteries: [masteryData],
-    reviews: [{refid: String, name: String}],
-    lang: String
+    assignmentrefs: [{id: String, name: String, status: String, active: Date, lang: String, submitted: Date, due: Date, attempts: Number, rating: String, comments: String, daystogo: String, type: String}],
 },{collection: 'users'});
 
 const userDataModel = mongoose.model('UserData', userData);
