@@ -775,15 +775,16 @@ app.get("/api/0.1.0/dialogs/reaction", function(req, res) {
 app.get("/api/0.1.0/log/get", function(req, res) {
     console.log("Logs", req.query.token);
     if(req.query.token) {
-        log.find({token:req.query.token},null,{sort:{create_date: -1}},function(err, logentries) {
+        log.find({token:req.query.token},null,{sort:{create_date: -1},limit: 100},function(err, logentries) {
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
             }
             if(logentries.length > 0) {
-                res.send({success: true, error: "dialogs for "+req.query.token, logentries:logentries});
+                console.log("# log entries:", logentries.length);
+                res.send({success: true, error: "log for "+req.query.token, logentries:logentries});
             } else {
-                res.send({success: false, error: "no dialogs for "+req.query.token});
+                res.send({success: false, error: "no log for "+req.query.token});
             }
         }); 
     } else {
@@ -919,8 +920,13 @@ app.get("/api/0.1.0/user/reload", function(req, res) {
 app.get("/api/0.1.0/user/list", function(req, res) {
     ///// List with all users
 
-    console.log("userList from memory:", userList.length);
-    res.send(userList);
+    user.find(function (err, user) {
+        if (err) return console.error(err);
+        userList = user;
+        console.log("userList aus MongoDB:", userList.length);
+//        res.send({success: true, function: "reload"});
+        res.send(userList);
+    });
 });
 app.get("/api/0.1.0/user/update", function(req, res) {
     user.findOne({token:req.query.UserToken}, function (err, user) {
@@ -990,6 +996,41 @@ app.get("/api/0.1.0/user/seteduoselfassess", function(req, res) {
         // TODO
     });
     res.send({success: true, function: "seteduoselfassess"});
+});
+app.get("/api/0.1.0/user/setpreparatory", function(req, res) {
+
+    
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("seteduoselfassess query:",req.query);
+        if(userdata) {
+            var i = 0;
+            for(i=0;i<userdata.assignmentrefs.length;i++) {
+                if(userdata.assignmentrefs[i].id==req.query.assignment) {
+                    userdata.assignmentrefs[i].preparatory = JSON.parse(req.query.answers);
+//                    console.log("preparatory:", userdata.assignmentrefs[i]);
+                    userdata.save(function (err, user) {
+                        if (err) return console.error(err);
+                        console.log("preparatory updated");
+                    });
+                    break;
+                }
+            }
+/*
+            if(i==userdata.eduobjectives.length) {
+                //New Selfassessment
+                userdata.eduobjectives.push({_id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
+                console.log(userdata.eduobjectives);
+                userdata.save(function (err, userdata) {
+                    if (err) return console.error(err);
+                });
+            }
+*/            
+        }
+        // TODO
+    });
+    res.send({success: true, function: "setpreparatory", assignment: req.query.assignment});
 });
 // User v0.1.0 Ende ////////////////////////////////////////////////////////
 

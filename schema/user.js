@@ -18,7 +18,9 @@ var userSchema = new Schema({
         due: Date,
         attempts: String,
         rating: String,
-        comments: String
+        comments: String,
+        preparatory: {physically: String, mental: String, preparation: String},
+        results: {}
     }],
     eduobjectives: [{
         _id: String,
