@@ -20,12 +20,15 @@ var userSchema = new Schema({
         rating: String,
         comments: String,
         preparatory: {physically: String, mental: String, preparation: String},
-        results: {}
+        results: [{}]
     }],
     eduobjectives: [{
         _id: String,
-        name: String,
         selfassess: String,
+        count: Number(),
+        okcount: Number(),
+
+        name: String,
         resume: String,
         preknowledge: String,
         selfatest: String,

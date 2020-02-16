@@ -1032,6 +1032,71 @@ app.get("/api/0.1.0/user/setpreparatory", function(req, res) {
     });
     res.send({success: true, function: "setpreparatory", assignment: req.query.assignment});
 });
+app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("setassessmentresult query:",req.query);
+        if(userdata) {
+            var i = 0;
+            for(i=0;i<userdata.assignmentrefs.length;i++) {
+                if(userdata.assignmentrefs[i].id==req.query.assignment) {
+                    if(userdata.assignmentrefs[i].results) {
+                        userdata.assignmentrefs[i].results.push(JSON.parse(req.query.result));
+                    }
+                    else {
+                        userdata.assignmentrefs[i].results.push(JSON.parse(req.query.result));
+                    }
+//                    console.log("assessment result:", userdata.assignmentrefs[i]);
+//                    userdata.save(function (err, user) {
+//                        if (err) return console.error(err);
+//                        console.log("assessment result saved");
+//                    });
+                    break;
+                }
+            }
+            // TODO: Update educational objectives with results
+            var results = JSON.parse(req.query.result);
+            for(i=0;i<userdata.eduobjectives.length;i++) {
+//                console.log("User", i, userdata.eduobjectives[i]._id);
+                for(var j=0;j<results.eduobj.length;j++) {
+//                    console.log("Assessment", results.eduobj[j].id);
+                    if(userdata.eduobjectives[i]._id==results.eduobj[j].id) {
+                        console.log("Ok", userdata.eduobjectives[i]._id);
+                        if(userdata.eduobjectives[i].count) {
+                            userdata.eduobjectives[i].count = userdata.eduobjectives[i].count + results.eduobj[j].count;
+                        } else {
+                            userdata.eduobjectives[i].count = results.eduobj[j].count;
+                        }
+                        if(userdata.eduobjectives[i].okcount) {
+                            userdata.eduobjectives[i].okcount = userdata.eduobjectives[i].okcount + results.eduobj[j].countok;
+                        } else {
+                            userdata.eduobjectives[i].okcount = results.eduobj[j].countok;
+                        }
+                    }
+                }                
+            }
+            userdata.save(function (err, user) {
+                if (err) return console.error(err);
+                console.log("eduobj result saved");
+            });
+            
+
+/*
+            if(i==userdata.eduobjectives.length) {
+                //New Selfassessment
+                userdata.eduobjectives.push({_id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
+                console.log(userdata.eduobjectives);
+                userdata.save(function (err, userdata) {
+                    if (err) return console.error(err);
+                });
+            }
+*/            
+        }
+        // TODO
+    });
+    res.send({success: true, function: "setassessmentresult", result: req.query.result});
+});
 // User v0.1.0 Ende ////////////////////////////////////////////////////////
 
 
