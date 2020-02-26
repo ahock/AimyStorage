@@ -839,14 +839,14 @@ app.get("/api/0.1.0/user/get", function(req, res) {
     // TODO: move parameter 'UserToken' to 'token'
 
     if(req.query.UserToken) {
-        user.find({token:req.query.UserToken},null,{sort:{token: -1}},function(err, userdata) {
+        user.findOne({token:req.query.UserToken},function(err, userdata) {
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
             }
-            if(userdata[0]) {
-                console.log("User:", userdata[0]);
-                res.send({success: true, error: "data for user "+req.query.UserToken, user:userdata[0]});
+            if(userdata) {
+//                console.log("User:", userdata._id, userdata.assignmentrefs);
+                res.send({success: true, error: "data for user "+req.query.UserToken, user:userdata});
             } else {
                 res.send({success: false, error: "no user with token "+req.query.UserToken});
             }
@@ -1041,6 +1041,7 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
             var i = 0;
             for(i=0;i<userdata.assignmentrefs.length;i++) {
                 if(userdata.assignmentrefs[i].id==req.query.assignment) {
+                    userdata.assignmentrefs[i].asstype = req.query.asstype;
                     if(userdata.assignmentrefs[i].results) {
                         userdata.assignmentrefs[i].results.push(JSON.parse(req.query.result));
                     }
@@ -1055,23 +1056,43 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
                     break;
                 }
             }
-            // TODO: Update educational objectives with results
+            // Update educational objectives with results
             var results = JSON.parse(req.query.result);
             for(i=0;i<userdata.eduobjectives.length;i++) {
 //                console.log("User", i, userdata.eduobjectives[i]._id);
                 for(var j=0;j<results.eduobj.length;j++) {
 //                    console.log("Assessment", results.eduobj[j].id);
                     if(userdata.eduobjectives[i]._id==results.eduobj[j].id) {
-                        console.log("Ok", userdata.eduobjectives[i]._id);
-                        if(userdata.eduobjectives[i].count) {
-                            userdata.eduobjectives[i].count = userdata.eduobjectives[i].count + results.eduobj[j].count;
-                        } else {
-                            userdata.eduobjectives[i].count = results.eduobj[j].count;
-                        }
-                        if(userdata.eduobjectives[i].okcount) {
-                            userdata.eduobjectives[i].okcount = userdata.eduobjectives[i].okcount + results.eduobj[j].countok;
-                        } else {
-                            userdata.eduobjectives[i].okcount = results.eduobj[j].countok;
+                        console.log("Ok", userdata.eduobjectives[i]._id, req.query.asstype);
+                        switch(req.query.asstype) {
+                            case 'PK':
+                                // PreKnowledge
+                                userdata.eduobjectives[i].PK_asscount?userdata.eduobjectives[i].PK_asscount += 1:userdata.eduobjectives[i].PK_asscount = 1;
+                                userdata.eduobjectives[i].PK_count?userdata.eduobjectives[i].PK_count += results.eduobj[j].count:userdata.eduobjectives[i].PK_count = results.eduobj[j].count;
+                                userdata.eduobjectives[i].PK_ok?userdata.eduobjectives[i].PK_ok += results.eduobj[j].countok:userdata.eduobjectives[i].PK_ok = results.eduobj[j].countok;
+                                break;
+                            case 'SA':
+                                // Self Atestation
+                                userdata.eduobjectives[i].SA_asscount?userdata.eduobjectives[i].SA_asscount += 1:userdata.eduobjectives[i].SA_asscount = 1;
+                                userdata.eduobjectives[i].SA_count?userdata.eduobjectives[i].SA_count += results.eduobj[j].count:userdata.eduobjectives[i].SA_count = results.eduobj[j].count;
+                                userdata.eduobjectives[i].SA_ok?userdata.eduobjectives[i].SA_ok += results.eduobj[j].countok:userdata.eduobjectives[i].SA_ok = results.eduobj[j].countok;                                
+/*                                if(userdata.eduobjectives[i].count) {
+                                    userdata.eduobjectives[i].count = userdata.eduobjectives[i].count + results.eduobj[j].count;
+                                } else {
+                                    userdata.eduobjectives[i].count = results.eduobj[j].count;
+                                }
+                                if(userdata.eduobjectives[i].okcount) {
+                                    userdata.eduobjectives[i].okcount = userdata.eduobjectives[i].okcount + results.eduobj[j].countok;
+                                } else {
+                                    userdata.eduobjectives[i].okcount = results.eduobj[j].countok;
+                                }
+*/                                break;
+                            case 'MA':
+                                // Mastery
+                                userdata.eduobjectives[i].MA_asscount?userdata.eduobjectives[i].MA_asscount += 1:userdata.eduobjectives[i].MA_asscount = 1;
+                                userdata.eduobjectives[i].MA_count?userdata.eduobjectives[i].MA_count += results.eduobj[j].count:userdata.eduobjectives[i].MA_count = results.eduobj[j].count;
+                                userdata.eduobjectives[i].MA_ok?userdata.eduobjectives[i].MA_ok += results.eduobj[j].countok:userdata.eduobjectives[i].MA_ok = results.eduobj[j].countok;                                
+                                break;                            
                         }
                     }
                 }                
@@ -1097,212 +1118,37 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
     });
     res.send({success: true, function: "setassessmentresult", result: req.query.result});
 });
-// User v0.1.0 Ende ////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////
-//
-// User
-//
-///////////////////////////////////////////////////////////////
-
-//var Schema = mongoose.Schema;
-var masteryData = new Schema({
-    token: String,
-    name: String,
-    status: String
-});
-
-var userData = new Schema({
-    token: String,
-    email: String,
-    firstname: String,
-    lastname: String,
-    last_login: Date,
-    login_history: [String],
-    groups: [String],
-    eduobjectives: [{id: String, name: String, selfassess: String, field: String, notes: String}],
-    assignmentrefs: [{id: String, name: String, status: String, active: Date, lang: String, submitted: Date, due: Date, attempts: Number, rating: String, comments: String, daystogo: String, type: String}],
-},{collection: 'users'});
-
-const userDataModel = mongoose.model('UserData', userData);
-
-/*
-console.log("User1", User1);
-User1.save(function (err, User1) {
-    if (err) return console.error(err);
-});
-*/
-
-var userList = [];
-
-userDataModel.find(function (err, user) {
-  if (err) return console.error(err);
-  userList = user;
-  console.log("Anzahl User geladen:", userList.length);
-  // console.log("userList aus MongoDB:", userList);
-});
-
-app.get("/api/0.0.1/user/get", function(req, res) {
-    // Parameter
-    //  UserToken
-    //
-    console.log("/api/0.0.1/user/get");
-    // Log Device parameter
-    console.log("IP", req.ip);
-    console.log("Token", req.query.UserToken);
-    console.log("ClientId", req.query.ClientId);
-    
-    ///// Search for user with this token
-    var ok = false;
-    var j;
-    for(var i = 0; i<userList.length;i++) {
-//        console.log("Token",userList[i].token);
-        if(userList[i].token == req.query.UserToken) {
-            console.log("Ok",i);
-            ok = true;
-            j = i;
-            i = userList.length;
-        }
-    }
-    if(ok) {
-        console.log("User with token:", userList[j].token);
-        res.send({success: true, user: userList[j]});
-    }
-    else {
-        console.log("No user found!");
-        res.send({success: false, error: "no such user"});
-    }
-});
-app.get("/api/0.0.1/user/add", function(req, res) {
-    ///// Add new user
-    var newuserflag = true;
-    /// Check existance
-    ///// Search for user with this token
-    if( req.query.UserToken != "" && req.query.UserToken != undefined) {
-        var j;
-        for(var i = 0; i<userList.length;i++) {
-//            console.log("Token",userList[i].token);
-            if(userList[i].token == req.query.UserToken) {
-                console.log("Ok",i);
-                newuserflag = false;
-                j = i;
-                i = userList.length;
-            }
-        }
-    }
-    /// Stage data
-    if(newuserflag) {
-        console.log("New user!", req.query.UserData);
-        
-        var stageuserdata = JSON.parse(req.query.UserData);
-//        stageuserdata.token = req.query.UserToken;
-        stageuserdata.last_login = new Date();
-        
-        console.log("New user data object", stageuserdata);
-//        newuserflag = false;
-    }
-    else {
-        console.log("User with token:", userList[j].token);
-        res.send({success: false, error: "user exists"});
-    }
-    /// Create object and save
-    if(newuserflag) {
-        var User1 = new userDataModel(stageuserdata);
-        User1.save();
-        userList.push(User1);
-        console.log("Save new user!", User1, userList);
-        res.send({success: true, error: "user created"});
-    }
-});
-app.get("/api/0.0.1/user/reload", function(req, res) {
-    ///// Reload data from DB
-
-    userDataModel.find(function (err, user) {
-        if (err) return console.error(err);
-        userList = user;
-        console.log("userList aus MongoDB:", userList);
-        res.send({success: true, function: "reload"});
-    });
-});
-app.get("/api/0.0.1/user/list", function(req, res) {
-    ///// List with all users
-
-    console.log("userList from memory:", userList.length);
-    res.send(userList);
-});
-app.get("/api/0.0.1/user/update", function(req, res) {
-    userDataModel.findOne({token:req.query.UserToken}, function (err, user) {
+app.get("/api/0.1.0/user/getassignmentresults", function(req, res) {
+    user.findOne({token:req.query.token}, function (err, userdata) {
         if (err) return console.error(err);
         // Found user with this token in database
-        console.log("Query:",req.query);
-//        console.log("User:",user);
-        // Udgate Educational Objectives
-        console.log(req.query.EduObj?JSON.parse(req.query.EduObj):"keine Educational Objectives");
-        if(req.query.EduObj) {
-            let edo = JSON.parse(req.query.EduObj);
-            
-            for(let i=0;i<user.eduobjectives.length;i++) {
-                for(let j=0;j<edo.length;j++) {
-                    if(user.eduobjectives[i].oid == edo[j].oid) {
-                       if(edo[j].selfassess) {
-                           user.eduobjectives[i].selfassess =  edo[j].selfassess;
-                       }
-                       if(edo[j].notes) {
-                           user.eduobjectives[i].notes =  edo[j].notes;
-                       }
+        if(userdata) {
+            var i = 0;
+//            console.log("getassignmentresults query:",req.query, userdata);
+            for(i=0;i<userdata.assignmentrefs.length;i++) {
+                console.log("assignment",userdata.assignmentrefs[i].id,userdata.assignmentrefs[i].type);
+                for(var j=0;j<userdata.assignmentrefs[i].results.length;j++) {
+//                    console.log(userdata.assignmentrefs[i].results[j]);
+                    for(var k=0;k<userdata.assignmentrefs[i].results[j].eduobj.length;k++) {
+                        
+//                        console.log("i j k", i, j, k, userdata.assignmentrefs[i].results[j].eduobj[k].id, req.query.eduobj);
+                        if(userdata.assignmentrefs[i].results[j].eduobj[k].id==req.query.eduobj) {
+                            
+//                            assignment.findOne({_id:userdata.assignmentrefs[i].id},function(err, assignmentdata) {
+//                                if (err) return console.error(err);
+//                                console.log("assignment", assignmentdata);
+//                            });
+                            console.log("result", userdata.assignmentrefs[i].type ,userdata.assignmentrefs[i].id, req.query.eduobj,userdata.assignmentrefs[i].results[j].eduobj[k].countok,userdata.assignmentrefs[i].results[j].eduobj[k].count);
+                        }   
                     }
                 }
             }
         }
-        // Update Reviews
-        // TODO
-        
-        // Save user
-//        if(user){
-            user.save(function (err, user) {
-                if (err) return console.error(err);
-                userDataModel.find(function (err, user) {
-                    if (err) return console.error(err);
-                    userList = user;
-                });
-            });
-//        }
-    });
-    res.send({success: true, function: "update"});
-});
-app.get("/api/0.0.1/user/seteduoselfassess", function(req, res) {
-    userDataModel.findOne({token:req.query.token}, function (err, user) {
-        if (err) return console.error(err);
-        // Found user with this token in database
-        console.log("Query:",req.query, user.eduobjectives);
-        if(user) {
-            var i = 0;
-            for(i=0;i<user.eduobjectives.length;i++) {
-//                console.log(user.eduobjectives[i].id);
-                if(user.eduobjectives[i].id==req.query.eduoid) {
-                    user.eduobjectives[i].selfassess = req.query.value;
-                    user.save(function (err, user) {
-                        if (err) return console.error(err);
-                    });
-                    break;
-                }
-            }
-            if(i==user.eduobjectives.length) {
-                //New Selfassessment
-                user.eduobjectives.push({id: req.query.eduoid, name:'New EduObjective', selfassess: req.query.value});
-//                console.log(user.eduobjectives);
-                user.save(function (err, user) {
-                    if (err) return console.error(err);
-                });
-            }
-        }
         // TODO
     });
-    res.send({success: true, function: "update"});
+    res.send({success: true, function: "getassignmentresults", assignment: req.query.assignment});
 });
-
-// User Ende ////////////////////////////////////////////////////////
+// User v0.1.0 Ende ////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////

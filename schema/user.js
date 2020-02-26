@@ -13,26 +13,50 @@ var userSchema = new Schema({
         id: String,
         name: String,
         status: String,
-        active: Date,
-        submitted: Date,
-        due: Date,
-        attempts: String,
-        rating: String,
-        comments: String,
+
+//        active: Date,
+//        submitted: Date,
+//        due: Date,
+//        attempts: String,
+//        rating: String,
+//        comments: String,
+        asstype: String,
         preparatory: {physically: String, mental: String, preparation: String},
         results: [{}]
     }],
     eduobjectives: [{
         _id: String,
-        selfassess: String,
-        count: Number(),
-        okcount: Number(),
-
         name: String,
+        selfassess: String,
+        ///////////////////
+        //
+        //  assessment types
+        //
+        //  PreKnowledge: PK
+        //  SelfAtest: SA
+        //  External Assessment: EA
+        //  Mastery: MA
+        //
+        ///////////////////
+        PK_asscount: Number(),
+        PK_count: Number(),
+        PK_ok: Number(),
+        SA_asscount: Number(),
+        SA_count: Number(),
+        SA_ok: Number(),
+
+        MA_asscount: Number(),
+        MA_count: Number(),
+        MA_ok: Number(),
+
         resume: String,
+
         preknowledge: String,
+
         selfatest: String,
+
         extatest: String,
+
         mastery: String
     }],
     lang: String,
