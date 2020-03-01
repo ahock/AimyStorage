@@ -490,6 +490,76 @@ app.get("/api/0.1.0/skill/get", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.id});
     }
 });
+app.get("/api/0.1.0/skill/statistic", function(req, res) {
+    console.log("Skill statistic", req.query.id);
+    var statistic = {};
+    var eduo = [];
+    var ass = [];
+
+//var ObjectId = mongoose.Types.ObjectId;
+    
+    if(req.query.id) {
+        skill.findOne({_id: req.query.id},function(err, result) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result) {
+//                console.log(result.eduobjectiveref);
+                // Create temp array of ids of eduobjectives of this skill
+                eduo = [];
+                for(var i=0;i<result.eduobjectiveref.length;i++) {
+                    eduo.push(result.eduobjectiveref[i]._id);
+                }
+//                console.log(eduo);
+                // Query details of all eduobjectives of this skill
+                eduobjective.find({_id: {$in:eduo}},function(err, dialogs) {
+        //            console.log(dialogs);
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    }
+                    if(dialogs) {
+//                        console.log("Skill has # of EduObjs:", dialogs.length);
+                        ass = [];
+                        for(var i=0;i<dialogs.length;i++) {
+                            for(var j=0;j<dialogs[i].assignmentref.length;j++) {
+                                if(!ass.includes(dialogs[i].assignmentref[j]._id)) {
+                                    ass.push(dialogs[i].assignmentref[j]._id);   
+                                }
+                            }
+                        }
+                        statistic.ass_count = ass.length;
+//                        console.log("Skill", req.query.id);
+                        
+                        user.find({skillref:{$elemMatch:{id:req.query.id}}},function(err, data) {
+                            if(err) {}
+                            if(data) {
+//                                console.log("User", data.length);
+                                }
+                                statistic.cha_count = 22;
+                                statistic.grp_count = 0;
+                                statistic.skill_id = req.query.id;
+                                statistic.user_workon = data.length;
+                                statistic.user_success = data.length - 1;
+                                res.send({success: true, error: "no error", "statistic": statistic});
+                            }
+                        );
+                        //
+                        // TODO: Determin # of challanges addressing eduobs of this skill
+                        //
+                    } else {
+                        res.send({success: false, error: "no eduobjective for "+req.query.id});
+                    }
+                });                 
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
 app.get("/api/0.1.0/skill/upsert", function(req, res) {
     console.log("Skill add/update", req.query.id);
     skill.findByIdAndUpdate(req.query.id,{ $set: { name: req.query.name, description: req.query.description, modul: req.query.modul, field: req.query.field }},{upsert:true},function(err, result) {
@@ -855,56 +925,53 @@ app.get("/api/0.1.0/user/get", function(req, res) {
         res.send({success: false, error: "no valid token: "+req.query.UserToken});
     }
 });
+///////////////////////////////////////////////////////////////
+//
+// User Add
+//
+///////////////////////////////////////////////////////////////
 app.get("/api/0.1.0/user/add", function(req, res) {
     ///// Add new user
-    var newuserflag = true;
     /// Check existance
     ///// Search for user with this token
-    if( req.query.UserToken != "" && req.query.UserToken != undefined) {
-        var j;
-        for(var i = 0; i<userList.length;i++) {
-//            console.log("Token",userList[i].token);
-            if(userList[i].token == req.query.UserToken) {
-                console.log("Ok",i);
-                newuserflag = false;
-                j = i;
-                i = userList.length;
+    if(req.query.UserToken) {
+        user.findOne({token:req.query.UserToken},function(err, userdata) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
             }
-        }
-    }
-    /// Stage data
-    if(newuserflag) {
-        console.log("New user!", req.query.UserData);
-        
-        var stageuserdata = JSON.parse(req.query.UserData);
-        // Create default User
-        stageuserdata.token = req.query.UserToken;
-        stageuserdata.last_login = new Date();
-//        console.log("stageuserdate", stageuserdata);
-    }
-    else {
-        console.log("User with token:", userList[j].token);
-        res.send({success: false, error: "user exists"});
-    }
-    /// Create object and save
-    if(newuserflag) {
-        var User1 = new user(stageuserdata);
-        console.log("New user data object", User1);
-
-        // Create default Dialog
-        var Dialog1 = new dialog();
-        Dialog1.token = User1.token;
-        // TODO: set to selected language of user and update default text accordingly
-        Dialog1.lang = "de";
-        Dialog1.state = 1;
-        Dialog1.type = 1;
-        Dialog1.content = "Willkommen bei Aimy. Bitte beginne mit deinem ersten Auftrag und überprüfe, was du schon alles über die Bedienung von Aimy weisst. Dann kannst du schnell lernen, wie Aimy deine Daten schützt.";
-        Dialog1.save();
-        
-        User1.save();
-        userList.push(User1);
-
-        res.send({success: true, error: "user created"});
+            if(userdata) {
+                // User exists
+                console.log("User:", userdata._id, userdata.assignmentrefs);
+                res.send({success: true, error: "data for user "+req.query.UserToken, user:userdata});
+            } else {
+                // Create new user
+                if(req.query.UserData) {
+                    // New user with data
+                    var stageuserdata = JSON.parse(req.query.UserData);
+                    // Create default User
+                    stageuserdata.token = req.query.UserToken;
+                    var User1 = new user(stageuserdata);
+                    console.log("New user data object", User1);
+                    User1.save();
+                    
+                    // Create default Dialog
+                    var Dialog1 = new dialog();
+                    Dialog1.token = User1.token;
+                    // TODO: set to selected language of user and update default text accordingly
+                    Dialog1.lang = "de";
+                    Dialog1.state = 1;
+                    Dialog1.type = 1;
+                    Dialog1.content = "Willkommen bei Aimy. Bitte beginne mit deinem ersten Auftrag und überprüfe, was du schon alles über die Bedienung von Aimy weisst. Dann kannst du schnell lernen, wie Aimy deine Daten schützt.";
+                    Dialog1.save();
+                } else {
+                    // No data for new user
+                }
+                res.send({success: false, error: "no user with token "+req.query.UserToken});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.UserToken});
     }
 });
 app.get("/api/0.1.0/user/reload", function(req, res) {

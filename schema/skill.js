@@ -10,6 +10,7 @@ var skillSchema = new Schema({
     field: String,
     skillsetref: [{_id: String, name: String}],
     eduobjectiveref: [{_id: String, name: String}],
+    evaluation: [{}]
 });
 
 const skillModel = mongoose.model('skill', skillSchema);
