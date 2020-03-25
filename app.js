@@ -845,7 +845,7 @@ app.get("/api/0.1.0/dialogs/reaction", function(req, res) {
 app.get("/api/0.1.0/log/get", function(req, res) {
     console.log("Logs", req.query.token);
     if(req.query.token) {
-        log.find({token:req.query.token},null,{sort:{create_date: -1},limit: 100},function(err, logentries) {
+        log.find({token:req.query.token},null,{sort:{create_date: -1},limit: 50},function(err, logentries) {
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
@@ -1185,6 +1185,27 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
     });
     res.send({success: true, function: "setassessmentresult", result: req.query.result});
 });
+app.get("/api/0.1.0/user/setskillstatus", function(req, res) {
+    if(req.query.token && req.query.skillid && req.query.skillstatus)
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("setskillstatus:",req.query);
+        if(userdata) {
+            for(var i=0;i<userdata.skillref.length;i++) {
+                if(userdata.skillref[i].id==req.query.skillid) {
+                    userdata.skillref[i].status = req.query.skillstatus;
+                    userdata.save(function (err, user) {
+                        if (err) return console.error(err);
+                        console.log("skillstatus updated");
+                        res.send({success: true, function: "setskillstatus", user: user});
+                    });
+                    break;
+                }
+            }
+        }
+    });
+});
 app.get("/api/0.1.0/user/getassignmentresults", function(req, res) {
     user.findOne({token:req.query.token}, function (err, userdata) {
         if (err) return console.error(err);
@@ -1215,6 +1236,36 @@ app.get("/api/0.1.0/user/getassignmentresults", function(req, res) {
     });
     res.send({success: true, function: "getassignmentresults", assignment: req.query.assignment});
 });
+app.get("/api/0.1.0/user/addskill", function(req, res) {
+//addskill", {params:{id: userid, skillid:skillid, name:name, description:description, status:status}}
+    console.log("addSkill", req.query);
+    user.findOne({_id:req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this id in database
+        if(userdata) {
+
+            userdata['skillref'].push({
+                id:req.query.skillid,
+                name:req.query.name,
+                description:req.query.description,
+                status: req.query.status
+            });            
+            
+            userdata.save(function (err, userupd) {
+                console.log("Save:", userupd);
+                if (err) {
+                    console.log("Save:", err);
+                    res.send({success: false, error: "not created"});
+                } else {
+                    res.send({success: true, function: "addskill", user: userupd});
+                }
+            });
+            
+            
+        }
+    });
+});
+
 // User v0.1.0 Ende ////////////////////////////////////////////////////////
 
 
@@ -1476,10 +1527,15 @@ app.get("/api/0.0.1/objective/get", function(req, res) {
 
 var challengeSchema = new Schema({
     name: String,
-    lang: ['DE','EN','FR'],
-    type: ['Kennen','Können','Tuen'],
+    text: String,
+    hint: String,
+    lang: String,
+    type: String,
     field: String,
-    eduobjectives: [eduobjectiveSchema]
+    module: String,
+    eduobjectives: [{id: String}],
+    correct: [Number],
+    answers: [String]
 },{collection: 'challenges'});
 
 const challengeModel = mongoose.model('Challenge', challengeSchema);
@@ -1561,6 +1617,78 @@ app.get("/api/0.0.1/challenge/get", function(req, res) {
         res.send({success: false, error: "no such challenge"});
     }
 });
+app.get("/api/0.1.0/challenge/set", function(req, res) {
+    // Parameter
+    //  id
+    //
+//    console.log("/api/0.1.0/challenge/set", req.query);
+    challengeModel.findOne({_id:req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        if(userdata) {
+            console.log("1 Challenge:",userdata);
+            var stageingdata = JSON.parse(req.query.challenge);
+//            console.log("2 Challenge:",stageingdata);
+            userdata.name = stageingdata.name;
+            userdata.eduobjectives = stageingdata.eduobjectives;
+            userdata.answers = stageingdata.answers;
+            userdata.correct = stageingdata.correct;
+            userdata.text = stageingdata.text;
+            userdata.hint = stageingdata.hint;
+//            console.log("3 Challenge:",userdata);
+            userdata.save(function(err, usernewdata){
+                if (err) return console.error(err);
+                console.log("Save Challenge:",usernewdata);
+                res.send({success: true, error: "update challenge", challenge: usernewdata});
+            });
+        } else {
+            console.log("New Challenge:",req.query.challenge);
+            stageingdata = JSON.parse(req.query.challenge);
+            var Challenge1 = new challengeModel(stageingdata);
+            console.log("New user data object", Challenge1);
+            Challenge1.save(function(err, usernewdata){
+                if (err) return console.error(err);
+                console.log("Save Challenge:",usernewdata);
+                res.send({success: true, error: "new challenge", challenge: usernewdata});
+            });
+        }
+    });
+});
+app.get("/api/0.1.0/challenge/clone", function(req, res) {
+    // Parameter
+    //  id
+    //
+    console.log("/api/0.1.0/challenge/clone", req.query);
+    challengeModel.findOne({_id:req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        if(userdata) {
+//            let new_challenge = cleanId(userdata.toObject());
+            let new_challenge = userdata.toObject();
+            delete new_challenge._id;
+            let new_challenge_doc = new challengeModel(new_challenge);
+            console.log("Challenge to clone:",new_challenge_doc);
+            new_challenge_doc.save(function(err, usernewdata){
+                if (err) return console.error(err);
+                console.log("New cloned challenge:",usernewdata);
+                res.send({success: true, error: "update challenge", challenge: usernewdata});
+            });
+        }
+    });
+});
+//recursively remove _id fields
+function cleanId(obj) {
+    if (Array.isArray(obj))
+        obj.forEach(cleanId);
+    else {
+        delete obj['_id'];
+        for (let key in obj)
+            if (typeof obj[key] == 'object')
+                cleanId(obj[key]);
+    }
+}
+
+
+
+
 
 
 // Challenge Ende ////////////////////////////////////////////////////////
