@@ -368,6 +368,61 @@ app.get("/api/0.1.0/skillset/upsert", function(req, res) {
         });
     }
 });
+app.get("/api/0.1.0/skillset/modify", function(req, res) {
+    //
+    //  id:string       Id of skillset to modify
+    //  skillid:string  Id of skill to add or delete
+    //  cmd:string      Command to execute, add, delete, new, md-...
+    //  text:string     Payload: E.g. name of skill to add, content of masterdata
+    //
+    console.log("Skillset modify", req.query.id);
+    if(req.query.id) {
+        skillset.findOne({_id:req.query.id}, function(err, data) {
+            console.log(err, data);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(data) {
+                switch (req.query.cmd) {
+                    case 'add':
+                        data['skillref'].push({id:req.query.skillid,name:req.query.text});
+                        data.save();
+                        break;
+                    case 'delete':
+                        for( var i = 0; i < data['skillref'].length; i++) {
+                            if ( data['skillref'][i]['id'] == req.query.skillid) {
+                                data['skillref'].splice(i, 1);
+                            }
+                        }
+                        console.log("skillset", data);
+                        
+                        data.save();
+                        break;
+                    default:
+                        // code
+                }
+                res.send({success: true, error: "no error", "skillset": data});
+            }
+        });
+/*
+                    res.send({success: true, error: "no error", "skillset": result});
+    } else {
+        var NewSkillSet = new skillset({
+            name: req.query.name,
+            description: req.query.description,
+            field: req.query.field,
+            skillref: []
+        });
+        console.log("SkillSet", NewSkillSet);
+        NewSkillSet.save(function (err, result) {
+            if (err) return console.error(err);
+            console.log("SkillSetResult: ", result);
+            res.send({success: true, error: "no error", "skillset": result});    
+        });
+*/
+    }
+});
 // Skillset Ende ////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////
@@ -562,7 +617,7 @@ app.get("/api/0.1.0/skill/statistic", function(req, res) {
 });
 app.get("/api/0.1.0/skill/upsert", function(req, res) {
     console.log("Skill add/update", req.query.id);
-    skill.findByIdAndUpdate(req.query.id,{ $set: { name: req.query.name, description: req.query.description, modul: req.query.modul, field: req.query.field }},{upsert:true},function(err, result) {
+    skill.findByIdAndUpdate(req.query.id,{ $set: { name: req.query.name, description: req.query.description, modul: req.query.modul, field: req.query.field, lang: req.query.lang }},{upsert:true},function(err, result) {
             console.log(err, result);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
@@ -574,6 +629,23 @@ app.get("/api/0.1.0/skill/upsert", function(req, res) {
                 res.send({success: false, error: "no skill with id "+req.query.id});
             }
     }); 
+});
+app.get("/api/0.1.0/skill/new", function(req, res) {
+    console.log("new Skill", req.query);
+    var newSkill = new skill({
+        name: req.query.name,
+        description: req.query.description,
+        modul: req.query.modul,
+        field: req.query.field,
+        lang: req.query.lang,
+        skillsetref: [{_id:req.query.skillsetid, name:req.query.skillsetname}]
+    });
+    console.log("New skill", newSkill);
+    newSkill.save(function (err, result) {
+        if (err) return console.error(err);
+        console.log("NewSkillResult: ", result);
+        res.send({success: true, error: "no error", "skill": result});    
+    });
 });
 app.get("/api/0.1.0/skill/updateassignment", function(req, res) {
     console.log("EduObjective Assignment Update", req.query.id);
