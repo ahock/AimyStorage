@@ -701,6 +701,55 @@ app.get("/api/0.1.0/eduobjective/get", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.token});
     }
 });
+app.get("/api/0.1.0/eduobjective/list", function(req, res) {
+    console.log("EduObjective", req.query.field, req.query.filter);
+    var queryobj;
+    if(req.query.field) {
+        switch(req.query.field) {
+            case 'modul':
+                queryobj = {modul: req.query.filter};
+                
+
+                eduobjective.find(queryobj,function(err, dialogs) {
+                    console.log(err, dialogs);
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    } 
+                    res.send({success: true, error: "no error", "eduobjective": dialogs});
+                });
+                break;
+            case 'field':
+                queryobj = {field: req.query.filter};
+                
+                eduobjective.find(queryobj,function(err, dialogs) {
+                    console.log(err, dialogs);
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    } 
+                    res.send({success: true, error: "no error", "eduobjective": dialogs});
+                });
+                break;
+            case 'lang':
+                queryobj = {lang: req.query.filter};
+                
+                eduobjective.find(queryobj,function(err, dialogs) {
+                    console.log(err, dialogs);
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    } 
+                    res.send({success: true, error: "no error", "eduobjective": dialogs});
+                });
+                break;                
+            default:
+                res.send({success: false, error: "error"});
+        }
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.token});
+    }
+});
 app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
     console.log("EduObjective Assignment Update", req.query.id);
     if(req.query.id) { // query, fields, options, callback
