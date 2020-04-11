@@ -707,9 +707,14 @@ app.get("/api/0.1.0/eduobjective/list", function(req, res) {
     if(req.query.field) {
         switch(req.query.field) {
             case 'modul':
-                queryobj = {modul: req.query.filter};
-                
-
+                if(req.query.lang) {
+                    queryobj = {
+                        modul: req.query.filter,
+                        lang: req.query.lang
+                    };
+                } else {
+                    queryobj = {modul: req.query.filter};
+                }                
                 eduobjective.find(queryobj,function(err, dialogs) {
                     console.log(err, dialogs);
                     if (err) {
@@ -720,8 +725,14 @@ app.get("/api/0.1.0/eduobjective/list", function(req, res) {
                 });
                 break;
             case 'field':
-                queryobj = {field: req.query.filter};
-                
+                if(req.query.lang) {
+                    queryobj = {
+                        field: req.query.filter,
+                        lang: req.query.lang
+                    };
+                } else {
+                    queryobj = {field: req.query.filter};
+                }
                 eduobjective.find(queryobj,function(err, dialogs) {
                     console.log(err, dialogs);
                     if (err) {
@@ -1708,9 +1719,9 @@ app.get("/api/0.0.1/challenge/get", function(req, res) {
     var returnList = [];
     
     
-    console.log("/api/0.0.1/challenge/get");
+    console.log("/api/0.0.1/challenge/get",req.query);
     // Log Device parameter
-    
+//db.getCollection('challenges').find({_id: { $in:[ObjectId("5d032bede7179a4e43247f48"),ObjectId("5d032bede7179a4e43247f48"),ObjectId("5d032bede7179a4e43247f48")]}})
 //    console.log("id", req.query.id);
     
     let idres = JSON.parse(req.query.id);
@@ -1729,8 +1740,17 @@ app.get("/api/0.0.1/challenge/get", function(req, res) {
             }
         }
     }
+
+
+challengeModel.find({_id:req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        if(userdata) {
+            console.log("db", userdata);
+        }
+});
+    
     if(ok) {
-//        console.log("Challenges:");
+        console.log("Challenges:",returnList);
         res.send(returnList);
     }
     else {
@@ -1738,11 +1758,25 @@ app.get("/api/0.0.1/challenge/get", function(req, res) {
         res.send({success: false, error: "no such challenge"});
     }
 });
+app.get("/api/0.1.0/challenge/getone", function(req, res) {
+    //
+    // id
+    //
+    console.log("/api/0.0.1/challenge/getone",req.query);
+
+    challengeModel.find({_id:req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        if(userdata) {
+            console.log("db", userdata);
+            res.send({success: true, error: "no error", challenge: userdata});
+        }
+    });
+});
 app.get("/api/0.1.0/challenge/set", function(req, res) {
     // Parameter
     //  id
     //
-//    console.log("/api/0.1.0/challenge/set", req.query);
+    console.log("/api/0.1.0/challenge/set", req.query);
     challengeModel.findOne({_id:req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
@@ -1755,7 +1789,11 @@ app.get("/api/0.1.0/challenge/set", function(req, res) {
             userdata.correct = stageingdata.correct;
             userdata.text = stageingdata.text;
             userdata.hint = stageingdata.hint;
-//            console.log("3 Challenge:",userdata);
+            userdata.lang = stageingdata.lang;
+            userdata.type = stageingdata.type;
+            userdata.field = stageingdata.field;
+            userdata.module = stageingdata.modul;
+            console.log("3 Challenge:",userdata);
             userdata.save(function(err, usernewdata){
                 if (err) return console.error(err);
                 console.log("Save Challenge:",usernewdata);
