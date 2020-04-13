@@ -1469,6 +1469,118 @@ app.get("/api/0.1.0/assignment/get", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.id});
     }
 });
+app.get("/api/0.1.0/assignment/clone", function(req, res) {
+    console.log("Clone Assignment", req.query.id);
+    if(req.query.id) {
+        assignment.findOne({_id:req.query.id},function(err, data) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            } else {
+                if(data) {
+                    let new_assignment = data.toObject();
+                    delete new_assignment._id;
+                    let new_assignment_doc = new assignment(new_assignment);
+                    new_assignment_doc.save(function(err, newdata){
+                        if (err) return console.error(err);
+                        console.log("New cloned assignment id:",newdata._id);
+                        res.send({success: true, error: "cloned assignment", assignment: newdata});
+                    });
+                }
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/assignment/save", function(req, res) {
+//    console.log("Save Assignment", req.query.id);
+    if(req.query.id) {
+        assignment.findOne({_id:req.query.id},function(err, data) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            } else {
+                if(data) {
+                    let new_assignment = JSON.parse(req.query.data);
+/*
+    learninggoal: [{
+        name: String
+    }],
+    options: {
+        start: Boolean,
+        replay: Boolean,
+        delay: Boolean,
+        locked: Boolean,
+        coach: Boolean
+    },
+    result: String,
+*/
+                    // copy all properties
+                    data.challenges = new_assignment.challenges;
+                    data.name = new_assignment.name;
+                    data.status = new_assignment.status;
+                    data.type = new_assignment.type;
+                    data.modul = new_assignment.modul;
+                    data.lang = new_assignment.lang;
+                    data.autor = new_assignment.autor;
+                    data.group = new_assignment.group;
+                    // save item                    
+                    data.save(function(err, newdata){
+                        if (err) return console.error(err);
+                        console.log("Saved assignment id:",data._id);
+                        res.send({success: true, error: "saved assignment", assignment: newdata});
+                    });
+                }
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+app.get("/api/0.1.0/assignment/list", function(req, res) {
+    console.log("Assignment", req.query);
+    var query = {};
+    if(req.query.field) {
+        switch(req.query.field) {
+            case 'status':
+                query = {status:req.query.filtertext};
+                break;
+            case 'type':
+                query = {type:req.query.filtertext};
+                break;
+            case 'field':
+                query = {field:req.query.filtertext};
+                break;
+            case 'modul':
+                query = {modul:req.query.filtertext};
+                break;  
+        }
+    } else {
+        if(req.query.custom) {
+            query = JSON.parse(req.query.custom);
+        }
+    }
+    assignment.find(query,function(err, data) {
+        if (err) {
+            res.send({success: false, error: "error "+err+" from db"});
+            return console.error(err);
+        }
+        res.send({success: true, error: "assignments", assignments:data});
+    }); 
+});
+app.get("/api/0.1.0/assignment/lookup", function(req, res) {
+    console.log("Assignment lookup", req.query);
+    if(req.query.field) {
+        assignment.find().distinct(req.query.field,function(err, data) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            res.send({success: true, field: req.query.field, error: "lookup", lookup:data});
+        }); 
+    }
+});
 app.get("/api/0.1.0/assignment/add", function(req, res) {
         var log1 = new assignment();
         
