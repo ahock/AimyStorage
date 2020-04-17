@@ -1522,9 +1522,12 @@ app.get("/api/0.1.0/assignment/save", function(req, res) {
                     data.status = new_assignment.status;
                     data.type = new_assignment.type;
                     data.modul = new_assignment.modul;
+                    data.field = new_assignment.field;
                     data.lang = new_assignment.lang;
                     data.autor = new_assignment.autor;
                     data.group = new_assignment.group;
+                    data.earlieststart = new_assignment.earlieststart;
+                    data.latestend = new_assignment.latestend;
                     // save item                    
                     data.save(function(err, newdata){
                         if (err) return console.error(err);
@@ -1601,6 +1604,63 @@ app.get("/api/0.1.0/assignment/add", function(req, res) {
         });
 });
 
+async function ass_updateeduobj(req, res){
+    if(req.query.id) {
+        var eduobjlist = [];
+        var eduobitems = [];
+        var doc;
+        // Find the respected assignment
+        try {
+            doc = await assignment.findOne({_id:req.query.id}).exec();
+            var chal = doc.challenges;
+            for(var i=0; i<chal.length;i++) {
+                try {
+                    const doc1 = await challengeModel.findOne({_id:chal[i]}).exec();
+//                    console.log("nach exec", i, doc1.eduobjectives);
+                    for(var j=0;j<doc1.eduobjectives.length;j++) {
+                       
+                       if(eduobjlist.indexOf(doc1.eduobjectives[j].id)==-1) {
+//                           console.log("eduo", i, j, doc1.eduobjectives[j]);
+                           eduobjlist.push(doc1.eduobjectives[j].id);
+                       }
+                    }
+                } catch (err) {
+                    err.stack;
+                }
+            }
+        } catch (err) {
+          err.stack;
+        }
+        // Creation of array with ObjectIds for Mongoose
+        for(var i=0; i<eduobjlist.length;i++) {
+            eduobitems.push(mongoose.mongo.ObjectId(eduobjlist[i]));
+        }
+//        console.log("objectid", eduobitems);
+        // Get details of all educational objectives in the list
+        try {
+            const doc3 = await eduobjectiveModel.find({_id:{$in:eduobitems}}).exec();
+//            console.log("eduobj", doc3);
+            eduobitems = [];
+            for(i=0;i<doc3.length;i++) {
+                eduobitems.push({id:doc3[i]._id,name:doc3[i].name});
+            }
+        } catch (err) {
+            err.stack;
+        }
+        console.log("update assignment with eduobj:", eduobitems.length);
+        doc.eduobjref = eduobitems;
+        doc.save(function (err, dia) {
+//            console.log("Save:", dia);
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                res.send({success: true, error: "no", assignment: dia});
+            }
+        });
+    }
+}
+app.get("/api/0.1.0/assignment/updateeduobj", ass_updateeduobj);
 
 app.get("/api/0.0.1/review/get", function(req, res) {
     // Parameter
