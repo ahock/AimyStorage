@@ -430,6 +430,21 @@ app.get("/api/0.1.0/skillset/modify", function(req, res) {
 // Content
 //
 ///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/content/getall", function(req, res) {
+    console.log("Content getall");
+        content.find({},function(err, result) {
+            console.log(result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result) {
+                res.send({success: true, error: "no error", "content": result});
+            } else {
+                res.send({success: false, error: "no content with id "+req.query.id});
+            }
+        }); 
+});
 app.get("/api/0.1.0/content/get", function(req, res) {
     console.log("Content get", req.query.id);
     if(req.query.id) {
@@ -467,7 +482,7 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
             $set: {
                 name: req.query.name,
                 description: req.query.description,
-                type: req.query.ctype,
+                type: parseInt(req.query.type,10),
                 type_text: type_text[req.query.type-1],
                 url: req.query.url,
                 locator: req.query.locator,
@@ -480,7 +495,7 @@ app.get("/api/0.1.0/content/upsert", function(req, res) {
                     return console.error(err);
                 }
                 if(result) {
-                    res.send({success: true, error: "no error", "skill": result});
+                    res.send({success: true, error: "no error", "content": result});
                 } else {
                     res.send({success: false, error: "no skill with id "+req.query.id});
             }
@@ -788,6 +803,19 @@ app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.token});
     }
 });
+app.get("/api/0.1.0/eduobjective/lookup", function(req, res) {
+    console.log("eduobjective lookup", req.query);
+    if(req.query.field) {
+        eduobjective.find().distinct(req.query.field,function(err, data) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            res.send({success: true, field: req.query.field, error: "lookup", lookup:data});
+        }); 
+    }
+});
+
 // EduObjective Ende ////////////////////////////////////////////////////////
 
 
@@ -1055,6 +1083,63 @@ app.get("/api/0.1.0/user/get", function(req, res) {
         }); 
     } else {
         res.send({success: false, error: "no valid token: "+req.query.UserToken});
+    }
+});
+app.get("/api/0.1.0/user/toggleassignment", function(req, res) {
+    // Parameter
+    //  UserToken
+    //
+    console.log("/api/0.1.0/user/toggleassignment");
+    var aid = -1;
+    var assignmentitem;
+
+    if(req.query.assignmentid) {
+        assignmentitem = getAssignment(req.query.assignmentid);
+        assignmentitem.then((data)=>{
+            console.log("assignmentitem", data.name, data.type);
+            if(req.query.id) {
+                user.findOne({_id:req.query.id},function(err, userdata) {
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    }
+                    if(userdata) {
+                        for(var i=0;i<userdata.assignmentrefs.length;i++) {
+                            if(userdata.assignmentrefs[i].id==req.query.assignmentid) {
+                                aid = i;       
+                                break;
+                            }
+                        }
+                        switch(req.query.cmd) {
+                            case "activate":
+                                if(aid>-1) {
+                                    // assignment available
+                                    userdata.assignmentrefs[aid].status = "active";
+                                    console.log("active existing");
+                                    userdata.save();
+                                } else {
+                                    // new assignment for user
+                                    userdata.assignmentrefs.push({id:req.query.assignmentid,name:data.name,status:'active',asstype:data.type});
+                                    console.log("active new");
+                                    userdata.save();
+                                }
+                                break;
+                            case "inactivate":
+                                userdata.assignmentrefs[aid].status = "inactive";
+                                console.log("inactive existing");
+                                userdata.save();
+                                break;
+                            default:
+                        }
+                        res.send({success: true, error: "user data", user:userdata});
+                    } else {
+                        res.send({success: false, error: "no user with token "+req.query.UserToken});
+                    }
+                }); 
+            } else {
+                res.send({success: false, error: "no valid token: "+req.query.id});
+            }            
+        });
     }
 });
 ///////////////////////////////////////////////////////////////
@@ -2017,12 +2102,15 @@ function cleanId(obj) {
     }
 }
 
-
-
-
-
-
 // Challenge Ende ////////////////////////////////////////////////////////
+
+async function getAssignment(id) {
+    try {
+        return await assignment.findOne({_id:id}).exec();
+    } catch (err) {
+        err.stack;
+    }
+}
 
 app.get("/callback", function(req, res) {
     res.status(200).redirect("/");

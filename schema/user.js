@@ -6,7 +6,7 @@ var userSchema = new Schema({
     email: String,
     firstname: String,
     lastname: String,
-    last_login: Date,
+    last_login: String,
     login_history: [String],
     groups: [String],
     assignmentrefs: [{
