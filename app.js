@@ -339,6 +339,7 @@ app.get("/api/0.1.0/skillset/upsert", function(req, res) {
                 name: req.query.name,
                 description: req.query.description,
                 field: req.query.field,
+                lang: req.query.lang,
                 skillref: []
             }
             },{upsert:true},function(err, result) {
@@ -358,6 +359,7 @@ app.get("/api/0.1.0/skillset/upsert", function(req, res) {
             name: req.query.name,
             description: req.query.description,
             field: req.query.field,
+            lang: req.query.lang,
             skillref: []
         });
         console.log("SkillSet", NewSkillSet);
@@ -1021,6 +1023,48 @@ app.get("/api/0.1.0/log/get", function(req, res) {
         res.send({success: false, error: "no valid token: "+req.query.token});
     }
 });
+app.get("/api/0.1.0/log/month", function(req, res) {
+    log.aggregate([
+        { $project: {
+            date: "$create_date",
+            token: "$token",
+            area: "$area",
+            year:   { $year: "$create_date" },
+            month:  { $month: "$create_date" },
+            day:    { $dayOfMonth: "$create_date" },
+            week:   { $week: "$create_date"}
+            }
+        },
+        { $match : { "month" : parseInt(req.query.month,10), "year":parseInt(req.query.year,10) } },
+        { $group: {
+            _id: { a : "$day" }, // Group By Expression
+            day: { $first: "$day"},
+            date: { $first: "$date"},
+            count: { $sum : 1 },
+            user: {$push:{token:"$token"}}
+            }
+        },
+        { $project: { 
+            _id: 0,
+            }
+        },
+        { $sort:{ day : 1 }
+        }
+    ])
+    .exec(function(err, logentries) {
+        if (err) {
+            res.send({success: false, error: "error "+err+" from db"});
+            return console.error(err);
+        }
+        if(logentries.length > 0) {
+            console.log("Month# log entries:", logentries.length);
+            res.send({success: true, error: "log entries", logentries:logentries});
+        } else {
+            console.log("Month# no log entries");
+            res.send({success: false, error: "no log entries"});
+        }
+    }); 
+});
 app.get("/api/0.1.0/log/add", function(req, res) {
     var token = req.query.token;
 
@@ -1482,7 +1526,18 @@ app.get("/api/0.1.0/user/addskill", function(req, res) {
         }
     });
 });
-
+app.get("/api/0.1.0/user/lookup", function(req, res) {
+    console.log("user lookup", req.query.field);
+    if(req.query.field) {
+        user.find().distinct(req.query.field,function(err, data) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            res.send({success: true, field: req.query.field, error: "lookup", lookup:data});
+        }); 
+    }
+});
 // User v0.1.0 Ende ////////////////////////////////////////////////////////
 
 
