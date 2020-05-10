@@ -1446,6 +1446,28 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
     });
     res.send({success: true, function: "setassessmentresult", result: req.query.result});
 });
+app.get("/api/0.1.0/user/setskillrating", function(req, res) {
+    if(req.query.token && req.query.skillid)
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        console.log("setskillrating:",req.query);
+        if(userdata) {
+            for(var i=0;i<userdata.skillref.length;i++) {
+                if(userdata.skillref[i].id==req.query.skillid) {
+                    userdata.skillref[i].rating = "75%";
+                    userdata.skillref[i].togo = "Mastery noch zu machen";
+                    userdata.save((err, user) => {
+                        if (err) return console.error(err);
+                        console.log("skillrating updated");
+                        res.send({success: true, function: "setskillrating", rating: userdata.skillref[i].rating, togo: userdata.skillref[i].togo});
+                    });
+                    break;
+                }
+            }
+        }
+    });
+});
 app.get("/api/0.1.0/user/setskillstatus", function(req, res) {
     if(req.query.token && req.query.skillid && req.query.skillstatus)
     user.findOne({token:req.query.token}, function (err, userdata) {
