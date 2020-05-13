@@ -691,6 +691,35 @@ app.get("/api/0.1.0/skill/updateassignment", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.token});
     }
 });
+app.get("/api/0.1.0/skill/setevaluation", function(req, res) {
+    //id=5e09d00470877f375411433d&evaluation
+    console.log("Set Skill Evaluation", req.query.id, JSON.parse(req.query.evaluation));
+    
+    if(req.query.id) {
+        skill.findOne({_id: req.query.id},function(err, result) {
+            console.log(result);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(result) {
+                result.evaluation = JSON.parse(req.query.evaluation);
+                console.log("Updated Skill: ", result);
+                result.save(function (err, result) {
+                    if (err) return console.error(err);
+                    console.log("Saved Skill: ", result);
+                    res.send({success: true, error: "no error", "skill": result});    
+                });                
+            } else {
+                res.send({success: false, error: "no skill with id "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
+
+
 // Skill Ende ////////////////////////////////////////////////////////
 
 
@@ -1547,6 +1576,82 @@ app.get("/api/0.1.0/user/addskill", function(req, res) {
             
         }
     });
+});
+app.get("/api/0.1.0/user/getskillevaluation", function(req, res) {
+    // Parameter
+    //  token
+    //  skillid
+    //  mode
+    //  refid
+    //
+//    console.log("/api/0.1.0/user/getskillevaluation", req.query);
+
+    if(req.query.token) {
+        var evaluationresult = {
+            token: req.query.token,
+            mode: req.query.mode,
+            skill: req.query.skillid,
+            assid: "",
+            eduoid: "",
+            result: false
+        }
+        user.findOne({token:req.query.token},function(err, userdata) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(userdata) {
+                switch(req.query.mode) {
+                    case '1':
+                        console.log("Lernziel");
+                        evaluationresult.eduoid = req.query.refid;
+//                        console.log(req.query.refid);
+//                        console.log(userdata.eduobjectives);
+                        for(var i=0;i<userdata.eduobjectives.length;i++) {
+                            if(userdata.eduobjectives[i]._id==req.query.refid) {
+//                                console.log(req.query.threshold, parseInt(req.query.threshold,10));
+//                                console.log(userdata.eduobjectives[i].MA_count**req.query.threshold,userdata.eduobjectives[i].MA_ok*100);
+                                if(userdata.eduobjectives[i].MA_count*req.query.threshold<userdata.eduobjectives[i].MA_ok*100) {
+                                    console.log("eduobj passed");   
+                                    evaluationresult.result = true;
+                                } else {
+                                    console.log("eduobj not passed");
+                                    evaluationresult.result = false;
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    case '2':
+                        console.log("Auftrag");
+                        evaluationresult.assid = req.query.refid;
+                        for(var i=0;i<userdata.assignmentrefs.length;i++) {
+                            if(userdata.assignmentrefs[i].id==req.query.refid) {
+//                                console.log(req.query.threshold, parseInt(req.query.threshold,10));
+//                                console.log(userdata.eduobjectives[i].MA_count**req.query.threshold,userdata.eduobjectives[i].MA_ok*100);
+                                for(var j=0;j<userdata.assignmentrefs[i].results.length;j++) {
+                                    if(userdata.assignmentrefs[i].results[j].pass) {
+                                        evaluationresult.result = true;
+                                        console.log("assignment passed");
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    default:
+                        console.log("Default");
+                        break;
+                }
+                res.send({success: true, error: "data for user", evaluation:evaluationresult});
+            } else {
+                res.send({success: false, error: "no user with token "+req.query.token});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid token: "+req.query.token});
+    }
 });
 app.get("/api/0.1.0/user/lookup", function(req, res) {
     console.log("user lookup", req.query.field);
