@@ -2,6 +2,8 @@ var express = require("express");
 var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
 var path = require("path");
+var nodemailer = require('nodemailer');
+var fs = require('fs');
 
 var dialog = require("./schema/dialog.js");
 var assignment = require("./schema/assignment.js");
@@ -79,6 +81,43 @@ app.get("/test", function(req, res) {
 
 app.get("/favicon.ico", function(req, res) {
     res.sendFile(path.join(__dirname, ".", "favicon.ico"));
+});
+
+///////////////////////////////////////////////////////////////
+//
+// Email notifications
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/email", function(req, res) {
+    var mailOptions = {
+      from: 'andreas4hock@gmail.com',
+      to: 'andreashock@bluewin.ch',
+      subject: 'AIMY - Entwickele Dich - Es liegen neue Meldungen vor!',
+      text: 'That was easy!',
+      html: "<p>Es liegen neue Meldungen bei AIMY vor!</p><p><a href='http://showcase.aimyonline.com:8080/' target='_new'>Direkt zu Aimy</a></p>"
+    };    
+    var transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'onlineaimy@gmail.com',
+        pass: '5s#Dks26w2*J'
+      }
+    });
+
+    fs.readFile('./assets/emailtext.html', 'utf8', (err, data) => {
+        if (err) throw err;
+        mailOptions.html = data;
+    
+//        console.log(mailOptions);
+        
+        transporter.sendMail(mailOptions, function(error, info){
+            if (error) {
+              console.log(error);
+            } else {
+              res.send({success: true, error: "", info: info.response, email: mailOptions.to});    
+            }
+        });     
+    });
 });
 
 ///////////////////////////////////////////////////////////////

@@ -30,6 +30,7 @@
     "lodash": "^4.16.1",
     "moment": "^2.22.2",
     "mongoose": "^5.0.8",
+    "nodemailer": "^6.4.6",
     "zone.js": "0.8.11"
   },
   "repository": {}
