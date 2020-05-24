@@ -15,8 +15,11 @@ var user = require("./schema/user.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
-console.log("NODE_ENV", process.env.NODE_ENV || "test");
+//console.log("NODE_ENV", process.env.NODE_ENV || "test");
+console.log("ENV", process.env || "test");
 
+console.log("HOST    :", process.env.C9_HOSTNAME || "no C9_HOSTNAME");
+console.log("AWS_PATH:", process.env.AWS_PATH || "no AWS_PATH");
 console.log("APP_CONFIG", APP_CONFIG);
 
 var app = express();
@@ -36,8 +39,14 @@ app.use("/client", express.static(clientPath));
 
 app.use(bodyParser.json());
 
-const MONGO_DB_URI = "mongodb://ahock:taurus1ted@ds135069.mlab.com:35069/aimy";
-mongoose.connect(MONGO_DB_URI,{ useNewUrlParser: true });
+//const MONGO_DB_URI = "mongodb://ahock:taurus1ted@ds135069.mlab.com:35069/aimy";
+//mongoose.connect(MONGO_DB_URI,{ useNewUrlParser: true });
+
+//const MONGO_DB_URI = "mongodb+srv://aimy:aimx4aimy@aimycluster-9in7r.mongodb.net/aimy?retryWrites=true&w=majority";
+
+const MONGO_DB_URI = APP_CONFIG.MongoURI;
+mongoose.connect(MONGO_DB_URI,{ useNewUrlParser: true, useUnifiedTopology: true });
+
 mongoose.connection.on('connected', () => {
     console.log("Connected to MongoDB");
     // Load initial data
@@ -2329,6 +2338,7 @@ console.log("IP:",process.env.IP);
 console.log("Port:",process.env.PORT);
 //console.log("All env variables:", process.env);
 
-app.listen(process.env.PORT || 3000,'10.0.0.251');
+//app.listen(process.env.PORT || 3000,'10.0.0.251');
+app.listen(process.env.PORT || 3000, APP_CONFIG.BindIP);
 
 console.log("Server started on port:",process.env.PORT || 3000);
