@@ -104,20 +104,32 @@ app.get("/api/0.1.0/email", function(req, res) {
       }
     });
 
-    fs.readFile('./assets/emailtext.html', 'utf8', (err, data) => {
-        if (err) throw err;
-        mailOptions.html = data;
-    
-//        console.log(mailOptions);
-        
-        transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-              console.log(error);
-            } else {
-              res.send({success: true, error: "", info: info.response, email: mailOptions.to});    
+    if(req.query.sender_token == "auth0|5bbf4fed899d886ff2604295") {
+        const receiver = user.findOne({token: req.query.receiver_token});
+        receiver.then((data)=>{
+            if(data) {
+                console.log("Email Notification Receiver - Token:, Email",req.query.receiver_token,data.email);   
+                if(data.email) {
+                    // Send
+                    mailOptions.to = data.email;
+                    fs.readFile('./assets/emailtext.html', 'utf8', (err, template) => {
+                        if (err) throw err;
+                        mailOptions.html = template;
+                        transporter.sendMail(mailOptions, function(error, info){
+                            if (error) {
+                                console.log(error);
+                                res.send({success: false, error: "not send", info: req.query.sender_token, email: mailOptions.to});
+                            } else {
+                                res.send({success: true, error: "", info: info.response, email: mailOptions.to});    
+                            }
+                        });     
+                    });                    
+                }
             }
-        });     
-    });
+        });
+    } else {
+        res.send({success: false, error: "unauthorized sender", info: req.query.sender_token, email: mailOptions.to});
+    }
 });
 
 ///////////////////////////////////////////////////////////////
@@ -2297,6 +2309,20 @@ app.get("/api/0.1.0/challenge/set", function(req, res) {
                 res.send({success: true, error: "new challenge", challenge: usernewdata});
             });
         }
+    });
+});
+app.get("/api/0.1.0/challenge/new", function(req, res) {
+    // Parameter
+    //  id
+    //
+//    console.log("/api/0.1.0/challenge/new", req.query);
+    var stageingdata = JSON.parse(req.query.challenge);
+    var Challenge1 = new challengeModel(stageingdata);
+//    console.log("New user data object", Challenge1);
+    Challenge1.save(function(err, usernewdata){
+        if (err) return console.error(err);
+        console.log("New Challenge:",usernewdata._id);
+        res.send({success: true, error: "new challenge", challenge: usernewdata});
     });
 });
 app.get("/api/0.1.0/challenge/clone", function(req, res) {
