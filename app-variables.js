@@ -8,7 +8,7 @@ config.MongoURI = 'mongodb+srv://aimy:aimx4aimy@aimycluster-9in7r.mongodb.net/ai
 //config.BindIP = '10.0.0.251';
 config.BindIP = '172.31.14.135';
 config.apiVersion = '0.0.1';
-config.version = '0.0.11';
+config.version = '0.0.12';
 config.default_stuff =  ['red','green','blue','apple','yellow','orange','politics'];
 config.web.port = process.env.WEB_PORT || 9980;
 

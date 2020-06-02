@@ -867,6 +867,47 @@ app.get("/api/0.1.0/eduobjective/list", function(req, res) {
         res.send({success: false, error: "no valid id: "+req.query.token});
     }
 });
+app.get("/api/0.1.0/eduobjective/save", function(req, res) {
+//    console.log("EduObjective save", req.query);
+    if(req.query.id) {
+        eduobjective.findOne({_id: req.query.id},function(err, eduobj) {
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(eduobj) {
+                // object to modify
+                var edu1 = new eduobjective(eduobj);
+                // from URL parameter to mongoose object
+                var edu2 = new eduobjective(JSON.parse(req.query.eduobj));
+                // copy data to db object
+                edu1.name = edu2.name;
+                edu1.type = edu2.type;
+                edu1.taxonomie = edu2.taxonomie;
+                edu1.lang = edu2.lang;
+                edu1.modul = edu2.modul;
+                edu1.field = edu2.field;
+                edu1.skillref = edu2.skillref;
+                edu1.assignmentref = edu2.assignmentref;
+                edu1.contentref = edu2.contentref;
+                edu1.challengeref = edu2.challengeref;
+                edu1.save(function (err, edusave) {
+                    if (err) {
+                        console.log("Save:", err);
+                        res.send({success: false, error: "not created"});
+                    } else {
+                        console.log("edusave",edusave._id);
+                        res.send({success: true, error: "no error", "eduobjective": edusave});
+                    }
+                });  
+            } else {
+                res.send({success: false, error: "no eduobjective for "+req.query.id});
+            }
+        }); 
+    } else {
+        res.send({success: false, error: "no valid id: "+req.query.id});
+    }
+});
 app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
     console.log("EduObjective Assignment Update", req.query.id);
     if(req.query.id) { // query, fields, options, callback
