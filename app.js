@@ -372,6 +372,47 @@ app.get("/api/0.1.0/skillset/getall", function(req, res) {
         }
     }); 
 });
+app.get("/api/0.1.0/skillset/lookupeduobj", function(req, res) {
+    console.log("Skillset lookupeduobj");
+    var query = '{}';
+    var eduobjlist = new Array();
+    
+    if(req.query.id!='') {
+        query = {"skillsetref._id": req.query.id};
+    }
+    skill.find(query,function(err,result){
+        if (err) {
+            return console.error(err);
+        }
+        if(result.length > 0) {
+            for(var i=0; i<result.length; i++) {
+                for(var j=0; j<result[i].eduobjectiveref.length; j++) {
+                    eduobjlist.push(result[i].eduobjectiveref[j]._id);
+                }
+            }
+        }
+//        console.log("1",eduobjlist);
+        
+        for(i=0;i<eduobjlist.length;i++){
+            eduobjlist[i] = mongoose.Types.ObjectId(eduobjlist[i]);
+        }
+
+//mongoose.Types.ObjectId()
+
+//        var list = [eduobjlist[0],eduobjlist[1]];
+
+        eduobjective.find({_id: {$in:eduobjlist}},function(err, eduobjs) {
+            console.log("# eduobjectives for skillset", eduobjs.length);
+            if (err) {
+                res.send({success: false, error: "error "+err+" from db"});
+                return console.error(err);
+            }
+            if(eduobjs.length > 0) {
+                res.send({success: true, error: "no error", "eduobjectives": eduobjs});
+            }
+        });
+    });
+});
 app.get("/api/0.1.0/skillset/get", function(req, res) {
     console.log("Skillset get", req.query.id);
     if(req.query.id) {
@@ -868,7 +909,8 @@ app.get("/api/0.1.0/eduobjective/list", function(req, res) {
     }
 });
 app.get("/api/0.1.0/eduobjective/save", function(req, res) {
-//    console.log("EduObjective save", req.query);
+//    console.log("EduObjective para", req.query);
+
     if(req.query.id) {
         eduobjective.findOne({_id: req.query.id},function(err, eduobj) {
             if (err) {
@@ -896,16 +938,36 @@ app.get("/api/0.1.0/eduobjective/save", function(req, res) {
                         console.log("Save:", err);
                         res.send({success: false, error: "not created"});
                     } else {
-                        console.log("edusave",edusave._id);
+                        console.log("edu save: ",edusave._id);
                         res.send({success: true, error: "no error", "eduobjective": edusave});
                     }
                 });  
             } else {
-                res.send({success: false, error: "no eduobjective for "+req.query.id});
+                res.send({success: false, error: "not created"});
             }
         }); 
     } else {
-        res.send({success: false, error: "no valid id: "+req.query.id});
+        var edu1 = new eduobjective();
+        var edu2 = new eduobjective(JSON.parse(req.query.eduobj));
+        edu1.name = edu2.name;
+        edu1.type = edu2.type;
+        edu1.taxonomie = edu2.taxonomie;
+        edu1.lang = edu2.lang;
+        edu1.modul = edu2.modul;
+        edu1.field = edu2.field;
+        edu1.skillref = edu2.skillref;
+        edu1.assignmentref = edu2.assignmentref;
+        edu1.contentref = edu2.contentref;
+        edu1.challengeref = edu2.challengeref;
+        edu1.save(function (err, edusave) {
+            if (err) {
+                console.log("Save:", err);
+                res.send({success: false, error: "not created"});
+            } else {
+                console.log("edu new: ",edusave._id);
+                res.send({success: true, error: "new edu created", "eduobjective": edusave});
+            }
+        });                
     }
 });
 app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
@@ -1198,7 +1260,7 @@ app.get("/api/0.1.0/log/month", function(req, res) {
 app.get("/api/0.1.0/log/add", function(req, res) {
     var token = req.query.token;
 
-    console.log("Log add", token, req.query.type, req.query.message);
+//    console.log("Log add", token, req.query.type, req.query.message);
 
     if(token) {
         var log1 = new log();
@@ -1207,11 +1269,13 @@ app.get("/api/0.1.0/log/add", function(req, res) {
         log1.message = req.query.message;
         log1.type = req.query.type;
         log1.area = req.query.area;
+        log1.scopeId = req.query.scopeId?req.query.scopeId:'empty';
+        log1.extedId = req.query.extedId?req.query.extedId:'empty';
         log1.content = req.query.content;
         log1.lang = req.query.lang;
 
         log1.save(function (err, dia) {
-            console.log("Save:", dia);
+            console.log("Save log item:", dia.token, dia.message, dia.area);
             if (err) {
                 console.log("Save:", err);
                 res.send({success: false, error: "not created"});
@@ -1576,6 +1640,35 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
     });
     res.send({success: true, function: "setassessmentresult", result: req.query.result});
 });
+
+// settempassessmentresult
+app.get("/api/0.1.0/user/settempassessmentresult", function(req, res) {
+    user.findOne({token:req.query.token}, function (err, userdata) {
+        if (err) return console.error(err);
+        // Found user with this token in database
+        var res = JSON.parse(req.query.result);
+//        console.log("Temp assessment result",res.result);
+        if(userdata) {
+            //User found
+            var i = 0;
+            for(i=0;i<userdata.assignmentrefs.length;i++) {
+                if(userdata.assignmentrefs[i].id==req.query.assignment) {
+                    userdata.assignmentrefs[i].asstype = req.query.asstype;
+                     
+                    userdata.assignmentrefs[i].tempresult = res.result;
+                    
+                    break;
+                }
+            }
+            userdata.save(function (err, user) {
+                if (err) return console.error(err);
+                console.log("Temp result saved for user", user.token);
+            });
+        }
+    });
+    res.send({success: true, function: "settempassessmentresult", result: req.query.result});
+});
+
 app.get("/api/0.1.0/user/setskillrating", function(req, res) {
     if(req.query.token && req.query.skillid)
     user.findOne({token:req.query.token}, function (err, userdata) {
@@ -2274,23 +2367,26 @@ app.get("/api/0.0.1/challenge/get", function(req, res) {
         for(var j = 0; j<idres.length;j++) {
 //            console.log(":",challengeList[i]._id, idres[j]);
             if(challengeList[i]._id == idres[j]) {
-                console.log("Match:",idres[j], challengeList[i].name);
+//                console.log("Match:",idres[j], challengeList[i].name);
                 returnList.push(challengeList[i]);
                 ok = true;
             }
         }
     }
 
+//    console.log("Line 2368", req.query.id);
 
+/*
 challengeModel.find({_id:req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
             console.log("db", userdata);
         }
 });
+*/
     
     if(ok) {
-        console.log("Challenges:",returnList);
+//        console.log("Challenges:",returnList);
         res.send(returnList);
     }
     else {
@@ -2309,6 +2405,21 @@ app.get("/api/0.1.0/challenge/getone", function(req, res) {
         if(userdata) {
             console.log("db", userdata);
             res.send({success: true, error: "no error", challenge: userdata});
+        }
+    });
+});
+app.get("/api/0.1.0/challenge/findbyeduobj", function(req, res) {
+    //
+    // id
+    //
+    //challenges: ({"eduobjectives.id":"5e2429b95ee29d51c471ced5"})
+//    console.log("/api/0.1.0/challenge/findbyeduobj",req.query);
+
+    challengeModel.find({"eduobjectives.id":req.query.id}, function (err, userdata) {
+        if (err) return console.error(err);
+        if(userdata) {
+            console.log("Challenges to this eduobjective: ", userdata.length);
+            res.send({success: true, error: "no error", challenges: userdata});
         }
     });
 });

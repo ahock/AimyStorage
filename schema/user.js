@@ -22,7 +22,8 @@ var userSchema = new Schema({
 //        comments: String,
         asstype: String,
         preparatory: {physically: String, mental: String, preparation: String},
-        results: [{}]
+        results: [{}],
+        tempresult: []
     }],
     eduobjectives: [{
         _id: String,

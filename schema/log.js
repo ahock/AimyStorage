@@ -6,6 +6,8 @@ var logSchema = new Schema1({
     message: { type: String, default: "checkpoint" },
     type: { type: Number, default: 1 },//1 - ...
     area: { type: String, default: "basic" },
+    scopeId: { type: String, default: "empty" },
+    extedId: { type: String, default: "empty" },
     create_date: { type: Date, default: Date.now },
     content: { type: String, default: "no content" },
     lang: { type: String, default: "de" },
