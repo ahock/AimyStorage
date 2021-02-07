@@ -23,7 +23,7 @@ var userSchema = new Schema({
         asstype: String,
         preparatory: {physically: String, mental: String, preparation: String},
         results: [{}],
-        tempresult: []
+        tempresult: {}
     }],
     eduobjectives: [{
         _id: String,

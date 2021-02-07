@@ -1558,12 +1558,13 @@ app.get("/api/0.1.0/user/setassessmentresult", function(req, res) {
     user.findOne({token:req.query.token}, function (err, userdata) {
         if (err) return console.error(err);
         // Found user with this token in database
-        console.log("setassessmentresult query:",req.query);
+//        console.log("setassessmentresult query:",req.query);
         if(userdata) {
             var i = 0;
             for(i=0;i<userdata.assignmentrefs.length;i++) {
                 if(userdata.assignmentrefs[i].id==req.query.assignment) {
                     userdata.assignmentrefs[i].asstype = req.query.asstype;
+                    userdata.assignmentrefs[i].tempresult = undefined;
                     if(userdata.assignmentrefs[i].results) {
                         userdata.assignmentrefs[i].results.push(JSON.parse(req.query.result));
                     }
@@ -1647,16 +1648,14 @@ app.get("/api/0.1.0/user/settempassessmentresult", function(req, res) {
         if (err) return console.error(err);
         // Found user with this token in database
         var res = JSON.parse(req.query.result);
-//        console.log("Temp assessment result",res.result);
+//        console.log("Temp assessment result",res);
         if(userdata) {
-            //User found
+            // User found
             var i = 0;
             for(i=0;i<userdata.assignmentrefs.length;i++) {
                 if(userdata.assignmentrefs[i].id==req.query.assignment) {
-                    userdata.assignmentrefs[i].asstype = req.query.asstype;
-                     
-                    userdata.assignmentrefs[i].tempresult = res.result;
-                    
+                    // Assignment exists in user data
+                    userdata.assignmentrefs[i].tempresult = res;
                     break;
                 }
             }
