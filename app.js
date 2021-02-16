@@ -14,6 +14,7 @@ var skill = require("./schema/skill.js");
 var skillset  = require("./schema/skillset.js");
 var content = require("./schema/content.js");
 var user = require("./schema/user.js");
+var group = require("./schema/group.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -2497,6 +2498,118 @@ app.get("/api/0.1.0/challenge/clone", function(req, res) {
         }
     });
 });
+
+///////////////////////////////////////////////////////////////
+//
+// Group
+//
+///////////////////////////////////////////////////////////////
+app.get("/api/0.1.0/group/create", function(req, res) {
+    ///// Create a new group
+    /// Check existance
+    ///// Search for user with this token
+    if(req.query) {
+        var owner = JSON.parse(req.query.owner);
+        var objects = JSON.parse(req.query.objects);
+        var newGroup = new group({name:req.query.name, lang:req.query.lang, description:req.query.description, owner:owner, objecttype:req.query.objecttype,objects:objects});
+        newGroup.add( (grp)=>{
+            // console.log("cb",grp);
+            res.send({success: true, error: "ok", data: newGroup});
+        });
+
+    } else {
+        res.send({success: false, error: "no valid data: "+req.query});
+    }
+});
+app.get("/api/0.1.0/group/read", function(req, res) {
+    if(req.query.id) {
+        group.findOne({_id:req.query.id},function(err, grp){
+            if (err) return console.error(err);
+            if(grp) {
+                res.send({success: true, error: "ok", data: grp});
+            } else {
+                res.send({success: false, error: "group not available", data: grp}); 
+            }
+        });
+    } else {
+        res.send({success: false, error: "no valid data: "+req.query});
+    }
+});
+app.get("/api/0.1.0/group/update", function(req, res) {
+    ///// Update existing group
+    ///
+    /////
+    
+    var owner = JSON.parse(req.query.owner);
+    var objects = JSON.parse(req.query.objects);
+    var data = {
+        name: req.query.name,
+        description: req.query.description,
+        lang: req.query.lang,
+        owner: owner,
+        objecttype: req.query.objecttype,
+        objects: objects
+    };
+    if(req.query.id) {
+        group.findOne({_id:req.query.id},function(err, grp){
+            if (err) return console.error(err);
+            if(grp) {
+                grp.update(data, (data)=>{
+                    res.send({success: true, error: "ok", data: data});
+                });
+            } else {
+                res.send({success: false, error: "group not available", data: grp}); 
+            }
+        });
+    } else {
+        res.send({success: false, error: "no valid data: "+req.query});
+    }
+});
+app.get("/api/0.1.0/group/delete", function(req, res) {
+    ///// Delete an existing group
+    /// Check existance
+    if(req.query.id) {
+        group.findOne({_id:req.query.id},function(err, grp){
+            if (err) return console.error(err);
+            if(grp) {
+                grp.delete((data)=>{
+                    res.send({success: true, error: "ok", data: data});
+                });
+            } else {
+                res.send({success: false, error: "group not available", data: grp}); 
+            }
+        });
+    } else {
+        res.send({success: false, error: "no valid data: "+req.query});
+    }
+});
+app.get("/api/0.1.0/group/list", function(req, res) {
+    ///// List all filtert grougs
+    /// 
+    ///// 
+    if(req.query.filter) {
+        var filter = JSON.parse(req.query.filter);
+        group.find(filter,function(err, grp){
+            if (err) return console.error(err);
+            if(grp) {
+                res.send({success: true, error: "ok filter", data: grp});
+            } else {
+                res.send({success: false, error: "group not available", data: grp}); 
+            }
+        });
+    } else {
+        group.find({},function(err, grp){
+            if (err) return console.error(err);
+            if(grp) {
+                res.send({success: true, error: "ok all", data: grp});
+            } else {
+                res.send({success: false, error: "group not available", data: grp}); 
+            }
+        });
+    }
+});
+
+
 //recursively remove _id fields
 function cleanId(obj) {
     if (Array.isArray(obj))
