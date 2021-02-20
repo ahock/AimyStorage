@@ -903,10 +903,24 @@ app.get("/api/0.1.0/eduobjective/list", function(req, res) {
                 });
                 break;                
             default:
-                res.send({success: false, error: "error"});
         }
     } else {
-        res.send({success: false, error: "no valid id: "+req.query.token});
+                if(req.query.lang) {
+                    queryobj = {
+                        lang: req.query.lang
+                    };
+                } else {
+                    queryobj = {};
+                }
+                eduobjective.find(queryobj,function(err, dialogs) {
+                    console.log(err, dialogs);
+                    if (err) {
+                        res.send({success: false, error: "error "+err+" from db"});
+                        return console.error(err);
+                    } 
+                    res.send({success: true, error: "no error", "eduobjective": dialogs});
+                });
+
     }
 });
 app.get("/api/0.1.0/eduobjective/save", function(req, res) {
@@ -2510,7 +2524,12 @@ app.get("/api/0.1.0/group/create", function(req, res) {
     ///// Search for user with this token
     if(req.query) {
         var owner = JSON.parse(req.query.owner);
-        var objects = JSON.parse(req.query.objects);
+        var objects;
+        if(req.query.objects) {
+            objects = JSON.parse(req.query.objects);    
+        } else {
+            objects = [];
+        }        
         var newGroup = new group({name:req.query.name, lang:req.query.lang, description:req.query.description, owner:owner, objecttype:req.query.objecttype,objects:objects});
         newGroup.add( (grp)=>{
             // console.log("cb",grp);
@@ -2541,7 +2560,12 @@ app.get("/api/0.1.0/group/update", function(req, res) {
     /////
     
     var owner = JSON.parse(req.query.owner);
-    var objects = JSON.parse(req.query.objects);
+    var objects;
+    if(req.query.objects) {
+        objects = JSON.parse(req.query.objects);    
+    } else {
+        objects = [];
+    }
     var data = {
         name: req.query.name,
         description: req.query.description,
