@@ -632,7 +632,7 @@ app.get("/api/0.1.0/skill/getall", function(req, res) {
     console.log("Skill get", req.query.id);
     
         skill.find({},function(err, result) {
-            console.log(err, result);
+//            console.log(err, result);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
@@ -646,10 +646,10 @@ app.get("/api/0.1.0/skill/getall", function(req, res) {
     
 });
 app.get("/api/0.1.0/skill/get", function(req, res) {
-    console.log("Skill get", req.query.id);
+//    console.log("Skill get", req.query.id);
     if(req.query.id) {
         skill.find({_id: req.query.id},function(err, result) {
-            console.log(err, result);
+//            console.log(err, result);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
