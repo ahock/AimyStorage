@@ -12,8 +12,8 @@ config.MongoURI = 'mongodb+srv://aimy:aimx4aimy@aimycluster-9in7r.mongodb.net/ai
 // Digital Ocean IP
 config.BindIP = '138.68.102.77';
 config.apiVersion = '0.0.1';
-config.version = '0.1.9';
-config.comment = 'Digital Ocean deployment config added';
+config.version = '0.1.10';
+config.comment = 'Added schema/challenge.js';
 config.default_stuff =  ['red','green','blue','apple','yellow','orange','politics'];
 config.web.port = process.env.WEB_PORT || 9980;
 
