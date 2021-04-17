@@ -15,6 +15,7 @@ var skillset  = require("./schema/skillset.js");
 var content = require("./schema/content.js");
 var user = require("./schema/user.js");
 var group = require("./schema/group.js");
+var challenge = require("./schema/challenge.js");
 
 var APP_CONFIG = require("./app-variables.js");
 
@@ -48,15 +49,18 @@ app.use(bodyParser.json());
 //const MONGO_DB_URI = "mongodb+srv://aimy:aimx4aimy@aimycluster-9in7r.mongodb.net/aimy?retryWrites=true&w=majority";
 
 const MONGO_DB_URI = APP_CONFIG.MongoURI;
-mongoose.connect(MONGO_DB_URI,{ useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(MONGO_DB_URI,{ useNewUrlParser: true, useUnifiedTopology: true, keepAlive: true, keepAliveInitialDelay: 300000 });
 
 mongoose.connection.on('connected', () => {
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB", (new Date).toGMTString() );
     // Load initial data
-
 });
 mongoose.connection.on('error', (err) => {
     console.log("Error:", err, MONGO_DB_URI);    
+});
+mongoose.connection.on('disconnected', () => {
+    console.log("Disconnected from MongoDB", (new Date).toGMTString() );
+    // Load initial data
 });
 
 
@@ -989,7 +993,7 @@ app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
     console.log("EduObjective Assignment Update", req.query.id);
     if(req.query.id) { // query, fields, options, callback
         assignment.find({'eduobjref.id':req.query.id},{name: 1},null,function(err, assignments) {
-            console.log(assignments);
+//            console.log(assignments);
             if (err) {
                 res.send({success: false, error: "error "+err+" from db"});
                 return console.error(err);
@@ -1000,7 +1004,7 @@ app.get("/api/0.1.0/eduobjective/updateassignment", function(req, res) {
                   if(err){
                       console.log("Error:", err);
                   }
-                  console.log("Result", result);
+//                  console.log("Result", result);
                   res.send({success: true, error: "no error", "eduobjective": result});
                 });
 //                res.send({success: true, error: "no error", "assignmentref": assignments});
@@ -2090,7 +2094,7 @@ async function ass_updateeduobj(req, res){
             var chal = doc.challenges;
             for(var i=0; i<chal.length;i++) {
                 try {
-                    const doc1 = await challengeModel.findOne({_id:chal[i]}).exec();
+                    const doc1 = await challenge.findOne({_id:chal[i]}).exec();
 //                    console.log("nach exec", i, doc1.eduobjectives);
                     for(var j=0;j<doc1.eduobjectives.length;j++) {
                        
@@ -2304,6 +2308,7 @@ app.get("/api/0.0.1/objective/get", function(req, res) {
 //
 ///////////////////////////////////////////////////////////////
 
+/*
 var challengeSchema = new Schema({
     name: String,
     text: String,
@@ -2318,7 +2323,7 @@ var challengeSchema = new Schema({
 },{collection: 'challenges'});
 
 const challengeModel = mongoose.model('Challenge', challengeSchema);
-
+*/
 
 /*
 var Challenge = new challengeModel({
@@ -2342,7 +2347,7 @@ Challenge.save(function (err, Challenge) {
 
 var challengeList = [];
 
-challengeModel.find(function (err, challenge) {
+challenge.find(function (err, challenge) {
   if (err) return console.error(err);
   challengeList = challenge;
   console.log("Anzahl Challenges geladen:", challengeList.length);
@@ -2352,7 +2357,7 @@ challengeModel.find(function (err, challenge) {
 
 app.get("/api/0.1.0/challenge/getall", function(req, res) {
     console.log("/api/0.0.1/challenge/getall");
-    challengeModel.find(function (err, challenge) {
+    challenge.find(function (err, challenge) {
         if (err) return console.error(err);
         console.log("Anzahl Challenges geladen:", challenge.length);
         res.send({success: true, challenges: challenge});
@@ -2414,7 +2419,7 @@ app.get("/api/0.1.0/challenge/getone", function(req, res) {
     //
     console.log("/api/0.0.1/challenge/getone",req.query);
 
-    challengeModel.find({_id:req.query.id}, function (err, userdata) {
+    challenge.find({_id:req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
             console.log("db", userdata);
@@ -2429,7 +2434,7 @@ app.get("/api/0.1.0/challenge/findbyeduobj", function(req, res) {
     //challenges: ({"eduobjectives.id":"5e2429b95ee29d51c471ced5"})
 //    console.log("/api/0.1.0/challenge/findbyeduobj",req.query);
 
-    challengeModel.find({"eduobjectives.id":req.query.id}, function (err, userdata) {
+    challenge.find({"eduobjectives.id":req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
             console.log("Challenges to this eduobjective: ", userdata.length);
@@ -2442,12 +2447,12 @@ app.get("/api/0.1.0/challenge/set", function(req, res) {
     //  id
     //
     console.log("/api/0.1.0/challenge/set", req.query);
-    challengeModel.findOne({_id:req.query.id}, function (err, userdata) {
+    challenge.findOne({_id:req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
-            console.log("1 Challenge:",userdata);
+//            console.log("1 Challenge:",userdata);
             var stageingdata = JSON.parse(req.query.challenge);
-//            console.log("2 Challenge:",stageingdata);
+            console.log("2 Challenge:",stageingdata);
             userdata.name = stageingdata.name;
             userdata.eduobjectives = stageingdata.eduobjectives;
             userdata.answers = stageingdata.answers;
@@ -2458,6 +2463,9 @@ app.get("/api/0.1.0/challenge/set", function(req, res) {
             userdata.type = stageingdata.type;
             userdata.field = stageingdata.field;
             userdata.module = stageingdata.modul;
+            userdata.texturl = stageingdata.texturl;
+            userdata.hinturl = stageingdata.hinturl;
+            userdata.answersurl = stageingdata.answersurl;
             console.log("3 Challenge:",userdata);
             userdata.save(function(err, usernewdata){
                 if (err) return console.error(err);
@@ -2467,7 +2475,7 @@ app.get("/api/0.1.0/challenge/set", function(req, res) {
         } else {
             console.log("New Challenge:",req.query.challenge);
             stageingdata = JSON.parse(req.query.challenge);
-            var Challenge1 = new challengeModel(stageingdata);
+            var Challenge1 = new challenge(stageingdata);
             console.log("New user data object", Challenge1);
             Challenge1.save(function(err, usernewdata){
                 if (err) return console.error(err);
@@ -2483,7 +2491,7 @@ app.get("/api/0.1.0/challenge/new", function(req, res) {
     //
 //    console.log("/api/0.1.0/challenge/new", req.query);
     var stageingdata = JSON.parse(req.query.challenge);
-    var Challenge1 = new challengeModel(stageingdata);
+    var Challenge1 = new challenge(stageingdata);
 //    console.log("New user data object", Challenge1);
     Challenge1.save(function(err, usernewdata){
         if (err) return console.error(err);
@@ -2496,13 +2504,13 @@ app.get("/api/0.1.0/challenge/clone", function(req, res) {
     //  id
     //
     console.log("/api/0.1.0/challenge/clone", req.query);
-    challengeModel.findOne({_id:req.query.id}, function (err, userdata) {
+    challenge.findOne({_id:req.query.id}, function (err, userdata) {
         if (err) return console.error(err);
         if(userdata) {
 //            let new_challenge = cleanId(userdata.toObject());
             let new_challenge = userdata.toObject();
             delete new_challenge._id;
-            let new_challenge_doc = new challengeModel(new_challenge);
+            let new_challenge_doc = new challenge(new_challenge);
             console.log("Challenge to clone:",new_challenge_doc);
             new_challenge_doc.save(function(err, usernewdata){
                 if (err) return console.error(err);
